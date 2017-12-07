@@ -11,5 +11,6 @@ build: good_env *.go
 
 clean:
 	rm -rf dist &>/dev/null
+	find . -name '*.peg.go' -delete &>/dev/null
 
 .PHONY: all build clean

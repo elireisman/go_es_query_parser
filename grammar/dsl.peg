@@ -1,13 +1,7 @@
 package grammar
 
-
-import (
-  "fmt"
-
-  "github.com/pointlander/peg"
-  "gopkg.in/olivere/elastic.v5"
-)
-
+import "fmt"
+import "gopkg.in/olivere/elastic.v5"
 
 type DSL2ES Peg {
     Query     *elastic.BoolQuery
@@ -15,26 +9,18 @@ type DSL2ES Peg {
     Depth     int
 }
 
-func (dsl *DSL2ES) Show(msg, thing interface{}) {
-  indent := ""
-  for i := 0; i < dsl.Depth; i++ {
-    indent += "  "
-  }
-  fmt.Printf("%s%s => %#v\n", msg, thing)
-}
 
-//
-// productions:
-//
-result <- query !. { fmt.Println("RESULT") }
+result <- sp? query !. { fmt.Println("RESULT") }
 
-query <- expr (op expr)* { fmt.Println("QUERY") }
+query <- and_exprs / or_exprs / expr { fmt.Println("QUERY") }
 
-op <- and / or { fmt.Println("OP") }
+and_exprs <- expr (sp and sp expr)+ { fmt.Println("AND_EXPRS") }
 
-expr <- not? term { fmt.Println("EXPR") }
+or_exprs <- expr (sp or sp expr)+ { fmt.Println("OR_EXPRS") }
 
-term <- kv / word / '(' query ')' { fmt.Println("TERM | !TERM") }
+expr <- (not sp)? term { fmt.Println("EXPR") }
+
+term <- kv / word / '(' query sp? ')' { fmt.Println("TERM | !TERM") }
 
 kv <- key ':' value { fmt.Println("KEY-VALUE") }
 
@@ -46,9 +32,6 @@ number <- float / int { fmt.Println("NUMBER") }
 
 date <- year [/.-] month [/.-] day { fmt.Println("DATE") }
 
-//
-// terminals:
-//
 key <- [a-z]+ { fmt.Println("KEY") }
 
 phrase <- '"' [a-zA-Z0-9 \t]+ '"' { fmt.Println("PHRASE") }
@@ -57,9 +40,9 @@ word <- [a-zA-Z0-9_-]+ { fmt.Println("WORD") }
 
 year <- [1-2] [0-9] [0-9] [0-9] { fmt.Println("YEAR") }
 
-month <- ('0' [1-9] / '1' [0-2]) { fmt.Println("MONTH") }
+month <- '0' [1-9] / '1' [0-2] { fmt.Printf("MONTH") }
 
-day <- ('0' [1-9] / [1-2] [0-9] / '3' [0-1]) { fmt.Println("DAY") }
+day <- '0' [1-9] / [1-2] [0-9] / '3' [0-1] { fmt.Println("DAY") }
 
 int <- [0-9]+ { fmt.Println("INTEGER") }
 
@@ -75,3 +58,4 @@ and <- 'AND' { fmt.Println("AND") }
 
 or <- 'OR' { fmt.Println("OR") }
 
+sp <- [ \t\r\n]

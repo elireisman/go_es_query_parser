@@ -4,12 +4,14 @@ package main
 import (
   "fmt"
   "flag"
+  "log"
   "os"
 
-  "github.com/pointlander/peg"
+  "github.com/elireisman/go_es_query_parse/grammar"
 )
 
 const NoInput = "ERR_NO_INPUT_PROVIDED"
+
 
 func main() {
   rawQuery := flag.String("query", NoInput, "the query (written in the DSL) you wish to submit")
@@ -24,6 +26,10 @@ func main() {
   }
 
   // TODO: create generated parser object and DO THE PARSE, print JSON to stdout if all goes well
+  dsl := &grammar.DSL2ES{Buffer: query}
+  if err := dsl.Parse(); err != nil {
+    log.Fatalf("Parse Error: %s", err)
+  }
 }
 
 func usage() string {
