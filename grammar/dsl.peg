@@ -1,0 +1,64 @@
+package grammar
+
+
+import (
+  "fmt"
+)
+
+
+type DSL2ES Peg {
+    Out elastic.BoolQuery
+}
+
+//
+// productions:
+//
+result <- query !.
+
+query <- expr (op expr)*
+
+op <- AND | OR
+
+expr <- NOT? term
+
+term <- kv | word
+
+kv <- key ':' value
+
+value <- range | number | boolean | phrase | date | word
+
+range <- range_op number
+
+number <- float | int
+
+phrase <- '"' [a-zA-Z0-9 \t]+ '"'
+
+date <- year [/.-] month [/.-] day
+
+//
+// terminals:
+//
+key <- [a-z]+
+
+word <- [a-zA-Z0-9_-]+
+
+year <- [1-2] [0-9] [0-9] [0-9]
+
+month <- ('0' [1-9] | '1' [0-2])
+
+day <- ('0' [1-9] | [1-2] [0-9] | '3' [0-1])
+
+int <- [0-9]+
+
+boolean <- 'true' | 'false'
+
+float <- [0-9]* '.' [0-9]+ ([eE] int)?
+
+range_op <- '<' | '<=' | '>' | '>='
+
+not <- 'NOT'
+
+and <- 'AND'
+
+or <- 'OR'
+
