@@ -5,6 +5,8 @@ import (
   "fmt"
   "flag"
   "os"
+
+  "github.com/pointlander/peg"
 )
 
 const NoInput = "ERR_NO_INPUT_PROVIDED"
@@ -16,6 +18,10 @@ func main() {
   flag.Parse()
 
   fmt.Printf("%q\t(verbose=%t)\t(help=%t)", *rawQuery, *verbose, *halp)
+  if *halp {
+    fmt.Println(usage())
+    os.Exit(1)
+  }
 
   // TODO: create generated parser object and DO THE PARSE, print JSON to stdout if all goes well
 }

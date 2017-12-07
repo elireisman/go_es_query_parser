@@ -3,62 +3,75 @@ package grammar
 
 import (
   "fmt"
+
+  "github.com/pointlander/peg"
+  "gopkg.in/olivere/elastic.v5"
 )
 
 
 type DSL2ES Peg {
-    Out elastic.BoolQuery
+    Query     *elastic.BoolQuery
+    Filters   *elastic.BoolQuery
+    Depth     int
+}
+
+func (dsl *DSL2ES) Show(msg, thing interface{}) {
+  indent := ""
+  for i := 0; i < dsl.Depth; i++ {
+    indent += "  "
+  }
+  fmt.Printf("%s%s => %#v\n", msg, thing)
 }
 
 //
 // productions:
 //
-result <- query !.
+result <- query !. { fmt.Println("RESULT") }
 
-query <- expr (op expr)*
+query <- expr (op expr)* { fmt.Println("QUERY") }
 
-op <- AND | OR
+op <- and / or { fmt.Println("OP") }
 
-expr <- NOT? term
+expr <- not? term { fmt.Println("EXPR") }
 
-term <- kv | word
+term <- kv / word / '(' query ')' { fmt.Println("TERM | !TERM") }
 
-kv <- key ':' value
+kv <- key ':' value { fmt.Println("KEY-VALUE") }
 
-value <- range | number | boolean | phrase | date | word
+value <- range / number / boolean / phrase / date / word { fmt.Println("VALUE") }
 
-range <- range_op number
+range <- range_op number { fmt.Println("RANGE") }
 
-number <- float | int
+number <- float / int { fmt.Println("NUMBER") }
 
-phrase <- '"' [a-zA-Z0-9 \t]+ '"'
-
-date <- year [/.-] month [/.-] day
+date <- year [/.-] month [/.-] day { fmt.Println("DATE") }
 
 //
 // terminals:
 //
-key <- [a-z]+
+key <- [a-z]+ { fmt.Println("KEY") }
 
-word <- [a-zA-Z0-9_-]+
+phrase <- '"' [a-zA-Z0-9 \t]+ '"' { fmt.Println("PHRASE") }
 
-year <- [1-2] [0-9] [0-9] [0-9]
+word <- [a-zA-Z0-9_-]+ { fmt.Println("WORD") }
 
-month <- ('0' [1-9] | '1' [0-2])
+year <- [1-2] [0-9] [0-9] [0-9] { fmt.Println("YEAR") }
 
-day <- ('0' [1-9] | [1-2] [0-9] | '3' [0-1])
+month <- ('0' [1-9] / '1' [0-2]) { fmt.Println("MONTH") }
 
-int <- [0-9]+
+day <- ('0' [1-9] / [1-2] [0-9] / '3' [0-1]) { fmt.Println("DAY") }
 
-boolean <- 'true' | 'false'
+int <- [0-9]+ { fmt.Println("INTEGER") }
 
-float <- [0-9]* '.' [0-9]+ ([eE] int)?
+boolean <- 'true' / 'false' { fmt.Println("BOOLEAN") }
 
-range_op <- '<' | '<=' | '>' | '>='
+float <- [0-9]* '.' [0-9]+ ([eE] int)? { fmt.Println("FLOAT") }
 
-not <- 'NOT'
+range_op <- '<' / '<=' / '>' / '>=' { fmt.Println("RANGE") }
 
-and <- 'AND'
+not <- 'NOT' { fmt.Println("NOT") }
 
-or <- 'OR'
+and <- 'AND' { fmt.Println("AND") }
+
+or <- 'OR' { fmt.Println("OR") }
 
