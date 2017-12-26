@@ -18,11 +18,16 @@ func main() {
   halp := flag.Bool("help", false, "print DSL and usage details and exit")
   flag.Parse()
 
-  log.Printf("Query: %q\t\t(verbose=%t, help=%t)", *query, *verbose, *halp)
+  if *query == NoInput {
+    log.Println("-query argument specifying query string is required, aborting!")
+    os.Exit(1)
+  }
   if *halp {
     log.Println(usage())
     os.Exit(1)
   }
+
+  log.Printf("Query: %q\t\t(verbose=%t, help=%t)", *query, *verbose, *halp)
 
   dsl := &grammar.DSL2ES{Buffer: *query}
   dsl.Init()
@@ -32,7 +37,7 @@ func main() {
 }
 
 func usage() string {
-  return fmt.Sprintf("Usage: %s -query \"(NOT (foo OR (bar AND baz)) AND dog AND NOT (pug OR lab)\" [-verbose] [-help]", os.Args[0])
+  return fmt.Sprintf("Usage: %s -query \"query string\" [-verbose] [-help]", os.Args[0])
 
   // TODO: detail the DSL grammar etc. here also, or with verbose + help opts together only?
 }

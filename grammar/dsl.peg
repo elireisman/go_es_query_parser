@@ -9,55 +9,59 @@ type DSL2ES Peg {
 }
 
 
-result <- sp? query !. { fmt.Println("RESULT") }
+# Rules
 
-query <- and_exprs / or_exprs / expr { fmt.Println("QUERY") }
+Result <- Query !.
 
-and_exprs <- expr (sp and sp expr)+ { fmt.Println("AND_EXPRS") }
+Query <- AndExprs / OrExprs / Expr
 
-or_exprs <- expr (sp or sp expr)+ { fmt.Println("OR_EXPRS") }
+AndExprs <- Expr (SP AND SP Expr)+
 
-expr <- (not sp)? term { fmt.Println("EXPR") }
+OrExprs <- Expr (SP OR SP Expr)+
 
-term <- kv / word / '(' query sp? ')' { fmt.Println("TERM") }
+Expr <- (NOT SP)? Term
 
-kv <- key ':' value { fmt.Println("KEY-VALUE") }
+Term <- KeyValue / Word / '(' SP? Query SP? ')'
 
-value <- range / number / boolean / phrase / date / word { fmt.Println("VALUE") }
+KeyValue <- Key COLON Value
 
-range <- range_op number { fmt.Println("RANGE") }
+Key <- [a-z]+
 
-number <- float / int { fmt.Println("NUMBER") }
+Value <- Range / Boolean / Phrase / Date / Number / Word
 
-date <- year sep month sep day { fmt.Println("DATE") }
+Range <- RANGEOP Number
 
-key <- [a-z]+ { fmt.Println("KEY") }
+Date <- Year SEP Month SEP Day
 
-phrase <- '"' [a-zA-Z0-9 \t]+ '"' { fmt.Println("PHRASE") }
+Phrase <- DQ [^"]+ DQ
 
-word <- [a-zA-Z0-9_-]+ { fmt.Println("WORD") }
+Month <- '0' [1-9] / '1' [0-2]
 
-year <- [1-2] [0-9] [0-9] [0-9] { fmt.Println("YEAR") }
+Year <- [12] [0-9] [0-9] [0-9]
 
-month <- '0' [1-9] / '1' [0-2] { fmt.Printf("MONTH") }
+Day <- '0' [1-9] / [12] [0-9] / '3' [01] 
 
-day <- '0' [1-9] / [1-2] [0-9] / '3' [0-1] { fmt.Println("DAY") }
 
-int <- [0-9]+ { fmt.Println("INTEGER") }
+# Token Matchers
 
-boolean <- 'true' / 'false' { fmt.Println("BOOLEAN") }
+SEP <- '/'
 
-float <- [0-9]* '.' [0-9]+ ([eE] int)? { fmt.Println("FLOAT") }
+COLON <- ':'
 
-range_op <- '<' / '<=' / '>' / '>=' { fmt.Println("RANGE") }
+DQ <- '"'
 
-not <- 'NOT' { fmt.Println("NOT") }
+NOT <- 'NOT'
 
-and <- 'AND' { fmt.Println("AND") }
+AND <- 'AND'
 
-or <- 'OR' { fmt.Println("OR") }
+OR <- 'OR'
 
-sp <- [ \t\r\n]+ { fmt.Println("WHITESPACE") }
+RANGEOP <- '<=' / '>=' / '<' / '>'
 
-sep <- '/' / '-' / '.' { fmt.Println("DATE_SEP") }
+SP <- [ \t\r\n]+
 
+Boolean <- 'true' / 'false'
+
+Word <- [a-zA-Z_] [a-zA-Z0-9_]*
+
+Number <- [0-9]+
