@@ -1,7 +1,6 @@
 package grammar
 
-import "fmt"
-import "gopkg.in/olivere/elastic.v5"
+import "gopkg.in/olivere/elastic"
 
 type DSL2ES Peg {
     Query     *elastic.BoolQuery
@@ -20,7 +19,7 @@ or_exprs <- expr (sp or sp expr)+ { fmt.Println("OR_EXPRS") }
 
 expr <- (not sp)? term { fmt.Println("EXPR") }
 
-term <- kv / word / '(' query sp? ')' { fmt.Println("TERM | !TERM") }
+term <- kv / word / '(' query sp? ')' { fmt.Println("TERM") }
 
 kv <- key ':' value { fmt.Println("KEY-VALUE") }
 
@@ -30,7 +29,7 @@ range <- range_op number { fmt.Println("RANGE") }
 
 number <- float / int { fmt.Println("NUMBER") }
 
-date <- year [/.-] month [/.-] day { fmt.Println("DATE") }
+date <- year sep month sep day { fmt.Println("DATE") }
 
 key <- [a-z]+ { fmt.Println("KEY") }
 
@@ -58,4 +57,7 @@ and <- 'AND' { fmt.Println("AND") }
 
 or <- 'OR' { fmt.Println("OR") }
 
-sp <- [ \t\r\n]
+sp <- [ \t\r\n]+ { fmt.Println("WHITESPACE") }
+
+sep <- '/' / '-' / '.' { fmt.Println("DATE_SEP") }
+

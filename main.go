@@ -12,21 +12,20 @@ import (
 
 const NoInput = "ERR_NO_INPUT_PROVIDED"
 
-
 func main() {
-  rawQuery := flag.String("query", NoInput, "the query (written in the DSL) you wish to submit")
+  query := flag.String("query", NoInput, "the query (written in the DSL) you wish to submit")
   verbose := flag.Bool("verbose", false, "log/explain verbosely during parsing")
   halp := flag.Bool("help", false, "print DSL and usage details and exit")
   flag.Parse()
 
-  fmt.Printf("%q\t(verbose=%t)\t(help=%t)", *rawQuery, *verbose, *halp)
+  log.Printf("Query: %q\t\t(verbose=%t, help=%t)", *query, *verbose, *halp)
   if *halp {
-    fmt.Println(usage())
+    log.Println(usage())
     os.Exit(1)
   }
 
-  // TODO: create generated parser object and DO THE PARSE, print JSON to stdout if all goes well
-  dsl := &grammar.DSL2ES{Buffer: query}
+  dsl := &grammar.DSL2ES{Buffer: *query}
+  dsl.Init()
   if err := dsl.Parse(); err != nil {
     log.Fatalf("Parse Error: %s", err)
   }
