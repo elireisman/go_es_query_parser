@@ -1,11 +1,11 @@
 package grammar
 
-import "gopkg.in/olivere/elastic"
+import "github.com/elireisman/go_es_query_parse/utils"
 
 type DSL2ES Peg {
-    Query     *elastic.BoolQuery
-    Filters   *elastic.BoolQuery
-    Depth     int
+    Queries    utils.QueryStack 
+    Values     utils.ValueStack
+    IsFilter   bool
 }
 
 
