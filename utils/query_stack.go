@@ -31,6 +31,7 @@ func (q *Query) Should(eq elastic.Query) {
 }
 
 type QueryStack struct {
+  Output        *elastic.BoolQuery
   depth         int
   stack         []*Query
 }

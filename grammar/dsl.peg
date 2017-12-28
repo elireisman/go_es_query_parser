@@ -1,11 +1,12 @@
 package grammar
 
-import "github.com/elireisman/go_es_query_parse/utils"
+import "github.com/elireisman/go_es_query_parser/utils"
 
 type DSL2ES Peg {
-    Queries    utils.QueryStack 
-    Values     utils.ValueStack
-    IsFilter   bool
+    Queries     *utils.QueryStack 
+    Values      *utils.ValueStack
+    IsFilter    bool
+    Verbose     bool
 }
 
 
