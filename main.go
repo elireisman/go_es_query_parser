@@ -8,7 +8,7 @@ import (
   "log"
   "os"
 
-  "gopkg.in/olivere/elastic"
+  "gopkg.in/olivere/elastic.v5"
 
   "github.com/elireisman/go_es_query_parser/grammar"
   "github.com/elireisman/go_es_query_parser/utils"

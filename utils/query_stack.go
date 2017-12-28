@@ -3,7 +3,7 @@ package utils
 import (
   "log"
 
-  "gopkg.in/olivere/elastic"
+  "gopkg.in/olivere/elastic.v5"
 )
 
 type Oper uint8

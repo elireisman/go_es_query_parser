@@ -5,7 +5,7 @@ import (
   "regexp"
   "strconv"
 
-  "gopkg.in/olivere/elastic"
+  "gopkg.in/olivere/elastic.v5"
 )
 
 var (
