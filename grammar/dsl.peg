@@ -12,7 +12,7 @@ type DSL2ES Peg {
 
 # Rules
 
-Result <- Query !.
+Result <- Query !. { p.Queries.Finalize(p.Values.PopGroup()) }
 
 Query <- AndExprs / OrExprs / Expr
 
@@ -20,21 +20,27 @@ AndExprs <- Expr (SP AND SP Expr)+
 
 OrExprs <- Expr (SP OR SP Expr)+
 
-Expr <- (NOT SP)? Term
+Expr <- NegatedTerm / Term
 
-Term <- KeyValue / Word / '(' SP? Query SP? ')'
+NegatedTerm <- NOT KeyValue { p.Values.SetNegation(true) }
+            /  NOT Word { p.Values.SetNegation(true) }
+            /  NOTOPENPAREN SP? Query SP? CLOSEPAREN
+
+Term <- KeyValue { p.Values.SetNegation(false) }
+     /  Word { p.Values.SetNegation(false) }
+     /  OPENPAREN SP? Query SP? CLOSEPAREN
 
 KeyValue <- Key COLON Value
 
-Key <- [a-z]+
+Key <- [a-z]+ { p.Values.SetField(buffer[begin:end]) }
 
-Value <- Range / Boolean / Phrase / Date / Number / Word
+Value <- Range / Boolean / Phrase / Date / Number / Simple
 
-Range <- RANGEOP Number
+Range <- RANGEOP Number / RANEGOP Date
 
-Date <- Year SEP Month SEP Day
+Date <- <Year SEP Month SEP Day> { if p.Values.Peek() != nil && p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Term(buffer[begin:end]) } }
 
-Phrase <- DQ [^"]+ DQ
+Phrase <- DQ <[^"]+> DQ { p.Values.Phrase(buffer[begin:end]) }
 
 Month <- '0' [1-9] / '1' [0-2]
 
@@ -45,6 +51,12 @@ Day <- '0' [1-9] / [12] [0-9] / '3' [01]
 
 # Token Matchers
 
+OPENPAREN <- '(' { p.Queries.Push(false) ; p.Values.StartGroup() }
+
+NOTOPENPAREN <- NOT OPENPAREN { p.Queries.Push(true) ; p.Values.StartGroup() }
+
+CLOSEPAREN <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
+
 SEP <- '/'
 
 COLON <- ':'
@@ -53,16 +65,18 @@ DQ <- '"'
 
 NOT <- 'NOT'
 
-AND <- 'AND'
+AND <- 'AND' { p.Queries.Current().SetOper(utils.And) }
 
-OR <- 'OR'
+OR <- 'OR' { p.Queries.Current().SetOper(utils.Or) }
 
-RANGEOP <- '<=' / '>=' / '<' / '>'
+RANGEOP <- <'<='> / <'>='> / <'<'> / <'>'> { p.Values.SetRangeOp(buffer[begin:end]) }
 
 SP <- [ \t\r\n]+
 
-Boolean <- 'true' / 'false'
+Boolean <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
 
-Word <- [a-zA-Z_] [a-zA-Z0-9_]*
+Simple <- [a-zA-Z_] [a-zA-Z0-9_]* { p.Values.Term(buffer[begin:end]) }
 
-Number <- [0-9]+
+Word <- [a-zA-Z_] [a-zA-Z0-9_]* { p.Values.Match(buffer[begin:end]) }
+
+Number <- [0-9]+ { if p.Values.Peek() != nil && p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Number(buffer[begin:end]) } }
