@@ -32,7 +32,7 @@ func main() {
     log.Println(usage())
     os.Exit(1)
   }
-  log.Printf("Query: %q\t\t(is filter= %t, verbose=%t, help=%t)", *query, *isFilter, *verbose, *halp)
+  log.Printf("Query: %q\t\t(filter=%t, verbose=%t, help=%t)", *query, *isFilter, *verbose, *halp)
 
   // init DSL state object and parse the input
   dsl := &grammar.DSL2ES{
@@ -46,6 +46,13 @@ func main() {
   if err := dsl.Parse(); err != nil {
     log.Fatalf("Parse Error: %s", err)
   }
+
+  // TODO: DEBUG, REMOVE/IMPROVE?
+  if *verbose {
+    log.Printf("[VERBOSE] QueryStack: %#v", *dsl.Queries)
+    log.Printf("[VERBOSE] ValueStack: %#v", *dsl.Values)
+  }
+
   if dsl.Queries.Output == nil {
     log.Fatalf("parsing of query %q failed, no output registered, aborting", *query)
   }

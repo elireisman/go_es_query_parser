@@ -65,13 +65,56 @@ func (qs *QueryStack) Push(negate bool) {
 }
 
 func (qs *QueryStack) Finalize(values []*Value) {
-  // TODO: reuse Compose(), do final top-level checks, display remaining stack contents on fail
-  // TODO: inject final qs.Pop() result into dsl.Output? return it from here?
+  result := qs.Compose(values)
+
+  if len(qs.stack) > 0 {
+    log.Println("input was not fully parsed, additional AST nodes remain on stack:")
+    for ndx, frame := range qs.stack {
+      log.Printf("[Stack Frame %d] %#v", len(qs.stack) - ndx, *frame)
+    }
+    log.Fatal("Aborting.")
+  }
+
+  // expose top-level parent ES query from final stack frame, this is our final parse result
+  qs.Output = result.BoolQ
 }
 
-func (qs *QueryStack) Compose(values []*Value) {
-  // TODO: use popped value(s) and top-level group negate flag to populate qs.Current(), then qs.Pop() to nest properly
-  // TODO: IF len(values) == 1, qs.SetOper(And) TO RESPECT DEFAULT
+// when ')' or end-of-input is encountered, we pop the whole group of individual queries from the stack
+// back to the last '(' or start-of-input, and we inject into the parent bool query at proper bucket/nesting
+func (qs *QueryStack) Compose(values []*Value) *Query {
+  if len(values) == 0 {
+    log.Fatal("every AND/OR clause must contain at least one valid value argument, aborting")
+  } else if len(values) == 1 {
+    // AND is the default for unspecified groups
+    if qs.Current().Oper != And {
+        qs.Current().Oper = And
+    }
+  }
+
+  for ndx, v := range values {
+    switch qs.Current().Oper {
+    // AND clause maps to Must, NOT AND to MustNot in parent query
+    case And:
+      if v.Negate {
+        qs.Current().MustNot(v.Q)
+      } else {
+        qs.Current().Must(v.Q)
+      }
+
+    // OR clause maps to Should, NOT OR clause we fake w/MustNot wrapped in the parent Should
+    case Or:
+      if v.Negate {
+        qs.Current().Should(elastic.NewBoolQuery().MustNot(v.Q))
+      } else {
+        qs.Current().Should(v.Q)
+      }
+
+    default: // None
+      log.Fatalf("unknown operator encountered in grouping clause at position %d, aborting", ndx)
+    }
+  }
+
+  return qs.Pop()
 }
 
 func (qs *QueryStack) Pop() *Query {
@@ -80,7 +123,7 @@ func (qs *QueryStack) Pop() *Query {
   qs.depth--
 
   // if this is a child (nested) subquery, nest it properly in the parent level
-  if qs.depth > 0 {
+  if len(qs.stack) > 0 {
     switch qs.Current().Oper {
     case And:
       if out.Negate {

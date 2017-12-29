@@ -164,14 +164,20 @@ func (vs *ValueStack) Term(term string) {
 }
 
 // only used in single-value context (i.e. a not a KV)
-func (vs *ValueStack) Match(text string) {
+func (vs *ValueStack) Match(text string, isFilterCtx bool) {
+  if isFilterCtx {
+    log.Fatal("no match query clauses allowed in filter context (try removing --filter CLI arg)")
+  }
   tmp := vs.Pop()
   tmp.Q = elastic.NewMatchQuery(tmp.Field, text)
   vs.Push(tmp)
 }
 
 // only used in single-value (quoted phrase) context (i.e. not a KV)
-func (vs *ValueStack) Phrase(phrase string) {
+func (vs *ValueStack) Phrase(phrase string, isFilterCtx bool) {
+  if isFilterCtx {
+    log.Fatal("no match_phrase query clauses allowed in filter context (try removing --filter CLI arg)")
+  }
   tmp := vs.Pop()
   tmp.Q = elastic.NewMatchPhraseQuery(tmp.Field, phrase)
   vs.Push(tmp)

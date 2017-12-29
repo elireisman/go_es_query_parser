@@ -12,7 +12,7 @@ type DSL2ES Peg {
 
 # Rules
 
-Result <- Query !. { p.Queries.Finalize(p.Values.PopGroup()) }
+Result <- SP? Query SP? !. { p.Queries.Finalize(p.Values.PopGroup()) }
 
 Query <- AndExprs / OrExprs / Expr
 
@@ -22,25 +22,30 @@ OrExprs <- Expr (SP OR SP Expr)+
 
 Expr <- NegatedTerm / Term
 
-NegatedTerm <- NOT KeyValue { p.Values.SetNegation(true) }
-            /  NOT Word { p.Values.SetNegation(true) }
+NegatedTerm <- NOT SP KeyValue { p.Values.SetNegation(true) }
+            /  NOT SP Match { p.Values.SetNegation(true) ; p.Values.SetField("_all") }
             /  NOTOPENPAREN SP? Query SP? CLOSEPAREN
 
 Term <- KeyValue { p.Values.SetNegation(false) }
-     /  Word { p.Values.SetNegation(false) }
+     /  Match { p.Values.SetNegation(false) ; p.Values.SetField("_all") }
      /  OPENPAREN SP? Query SP? CLOSEPAREN
 
 KeyValue <- Key COLON Value
+
+Match <- Phrase / Word
 
 Key <- [a-z]+ { p.Values.SetField(buffer[begin:end]) }
 
 Value <- Range / Boolean / Phrase / Date / Number / Simple
 
-Range <- RANGEOP Number / RANEGOP Date
+Range <- RANGEOP Number / RANGEOP Date
 
-Date <- <Year SEP Month SEP Day> { if p.Values.Peek() != nil && p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Term(buffer[begin:end]) } }
+Date <- <Year SEP Month SEP Day> { if p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Term(buffer[begin:end]) } }
 
-Phrase <- DQ <[^"]+> DQ { p.Values.Phrase(buffer[begin:end]) }
+Phrase <- DQ <[^"]+> DQ { p.Values.Phrase(buffer[begin:end], p.IsFilter) }
+
+
+# Token Matchers
 
 Month <- '0' [1-9] / '1' [0-2]
 
@@ -48,12 +53,9 @@ Year <- [12] [0-9] [0-9] [0-9]
 
 Day <- '0' [1-9] / [12] [0-9] / '3' [01] 
 
-
-# Token Matchers
-
 OPENPAREN <- '(' { p.Queries.Push(false) ; p.Values.StartGroup() }
 
-NOTOPENPAREN <- NOT OPENPAREN { p.Queries.Push(true) ; p.Values.StartGroup() }
+NOTOPENPAREN <- NOT SP? '(' { p.Queries.Push(true) ; p.Values.StartGroup() }
 
 CLOSEPAREN <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
 
@@ -69,7 +71,12 @@ AND <- 'AND' { p.Queries.Current().SetOper(utils.And) }
 
 OR <- 'OR' { p.Queries.Current().SetOper(utils.Or) }
 
-RANGEOP <- <'<='> / <'>='> / <'<'> / <'>'> { p.Values.SetRangeOp(buffer[begin:end]) }
+RANGEOP <- GTE / LTE / GT / LT
+
+GTE <- < '>=' > { p.Values.SetRangeOp(buffer[begin:end]) }
+LTE <- < '<=' > { p.Values.SetRangeOp(buffer[begin:end]) }
+GT  <- < '>' >  { p.Values.SetRangeOp(buffer[begin:end]) }
+LT  <- < '<' >  { p.Values.SetRangeOp(buffer[begin:end]) }
 
 SP <- [ \t\r\n]+
 
@@ -77,6 +84,6 @@ Boolean <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
 
 Simple <- [a-zA-Z_] [a-zA-Z0-9_]* { p.Values.Term(buffer[begin:end]) }
 
-Word <- [a-zA-Z_] [a-zA-Z0-9_]* { p.Values.Match(buffer[begin:end]) }
+Word <- [a-zA-Z_] [a-zA-Z0-9_]* { p.Values.Match(buffer[begin:end], p.IsFilter) }
 
-Number <- [0-9]+ { if p.Values.Peek() != nil && p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Number(buffer[begin:end]) } }
+Number <- [0-9]+ { if p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Number(buffer[begin:end]) } }
