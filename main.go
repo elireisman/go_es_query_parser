@@ -47,12 +47,13 @@ func main() {
     log.Fatalf("Parse Error: %s", err)
   }
 
-  // TODO: DEBUG, REMOVE/IMPROVE?
+  // if --verbose flag, let's see the AST before proceeding to translation step
   if *verbose {
-    log.Printf("[VERBOSE] QueryStack: %#v", *dsl.Queries)
-    log.Printf("[VERBOSE] ValueStack: %#v", *dsl.Values)
+    dsl.PrintSyntaxTree()
   }
 
+  // walk the parsed AST, firing off the logic in the rule/token actions, resulting in ES query/filter tree
+  dsl.Execute()
   if dsl.Queries.Output == nil {
     log.Fatalf("parsing of query %q failed, no output registered, aborting", *query)
   }
