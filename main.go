@@ -24,15 +24,14 @@ func main() {
   halp := flag.Bool("help", false, "print DSL and usage details and exit")
   flag.Parse()
 
-  if *query == NoInput {
-    log.Println("-query argument specifying query string is required, aborting")
-    os.Exit(1)
-  }
   if *halp {
     log.Println(usage())
     os.Exit(1)
   }
-  log.Printf("Query: %q\t\t(filter=%t, verbose=%t, help=%t)", *query, *isFilter, *verbose, *halp)
+  if *query == NoInput {
+    log.Println("-query argument specifying query string is required, aborting")
+    os.Exit(1)
+  }
 
   // init DSL state object and parse the input
   dsl := &grammar.DSL2ES{

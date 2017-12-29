@@ -41,7 +41,6 @@ func (q *Query) SetOper(op Oper) {
 
 type QueryStack struct {
   Output        *elastic.BoolQuery
-  depth         int
   stack         []*Query
 }
 
@@ -53,7 +52,7 @@ func (qs *QueryStack) Current() *Query {
   if qs.stack == nil {
     qs.stack = []*Query{NewLevel(false)}
   }
-  return qs.stack[qs.depth]
+  return qs.stack[len(qs.stack) - 1]
 }
 
 func (qs *QueryStack) Push(negate bool) {
@@ -61,7 +60,8 @@ func (qs *QueryStack) Push(negate bool) {
     qs.stack = []*Query{NewLevel(false)}
   }
   qs.stack = append(qs.stack, NewLevel(negate))
-  qs.depth++
+
+  log.Fatalf("[DEBUG] qs.Push(stack_size:%d)", len(qs.stack)) // TODO: DEBUG, REMOVE!
 }
 
 func (qs *QueryStack) Finalize(values []*Value) {
@@ -118,9 +118,11 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
 }
 
 func (qs *QueryStack) Pop() *Query {
-  out := qs.stack[qs.depth]
-  qs.stack = qs.stack[:qs.depth]
-  qs.depth--
+  last := len(qs.stack) - 1
+  out := qs.stack[last]
+  qs.stack = qs.stack[:last]
+
+  log.Fatalf("[DEBUG] qs.Pop(stack_size:%d)", len(qs.stack)) // TODO: DEBUG, REMOVE!
 
   // if this is a child (nested) subquery, nest it properly in the parent level
   if len(qs.stack) > 0 {

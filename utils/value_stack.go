@@ -33,7 +33,6 @@ type Value struct {
 }
 
 type ValueStack struct {
-  depth int
   stack []*Value
 }
 
@@ -41,7 +40,7 @@ func (vs *ValueStack) Peek() *Value {
   if vs.Empty() {
     return nil
   }
-  return vs.stack[vs.depth]
+  return vs.stack[len(vs.stack) - 1]
 }
 
 // first thing that happens in Term parsing, so append a dummy vaue for filling in as we parse
@@ -84,7 +83,6 @@ func (vs *ValueStack) Push(v *Value) {
     vs.stack = []*Value{}
   }
   vs.stack = append(vs.stack, v)
-  vs.depth = len(vs.stack) - 1
 }
 
 func (vs *ValueStack) Pop() *Value {
@@ -92,9 +90,9 @@ func (vs *ValueStack) Pop() *Value {
     log.Fatal("invalid attempt to pop value from empty stack!")
   }
 
-  out := vs.stack[vs.depth]
-  vs.stack = vs.stack[:vs.depth]
-  vs.depth--
+  last := len(vs.stack) - 1
+  out := vs.stack[last]
+  vs.stack = vs.stack[:last]
 
   return out
 }
@@ -137,8 +135,6 @@ func (vs *ValueStack) Boolean(value string) {
   vs.Push(tmp)
 }
 
-// TODO: add rule for suffix a Simple (single-word) with "?" for Exists vs. Match query
-// prefixing this construct with NOT should have already set negation on/off in tmp value
 func (vs *ValueStack) Exists() {
   tmp := vs.Pop()
   tmp.Q = elastic.NewExistsQuery(tmp.Field)

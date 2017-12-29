@@ -7,7 +7,7 @@ build: good_env *.go
 	go get -u github.com/pointlander/peg
 	$(GOPATH)/bin/peg -print grammar/dsl.peg
 	mkdir -p dist
-	go build -o dist/dsl_to_es_json_parser -v main.go
+	go build -o dist/es_dsl -v main.go
 
 clean:
 	rm -rf dist &>/dev/null
