@@ -46,7 +46,7 @@ func (vs *ValueStack) Push(v *Value) {
 
 func (vs *ValueStack) Pop() *Value {
   if vs.Empty() {
-    log.Fatal("invalid attempt to pop value from empty stack!")
+    log.Fatal("[ERROR] invalid attempt to pop value from empty stack!")
   }
 
   last := len(vs.stack) - 1
@@ -62,14 +62,14 @@ func (vs *ValueStack) Empty() bool {
 
 // start sentinel for parens-nested groupings of AND/OR separated query elements
 func (vs *ValueStack) StartGroup() {
-  log.Fatal("[DEBUG] vs.StartGroup()") // TODO: DEBUG, REMOVE!
+  log.Printf("[DEBUG] vs.StartGroup()") // TODO: DEBUG, REMOVE!
 
   vs.Push(&Value{nil, NoField, NoOp, false, true})
 }
 
 // returns the group of values for this nested AND/OR block, and whether it was prefixed by NOT
 func (vs *ValueStack) PopGroup() []*Value {
-  log.Fatal("[DEBUG] vs.PopGroup()") // TODO: DEBUG, REMOVE!
+  log.Printf("[DEBUG] vs.PopGroup()") // TODO: DEBUG, REMOVE!
 
   out := []*Value{}
 
@@ -96,7 +96,7 @@ func (vs *ValueStack) Peek() *Value {
 
 // first thing that happens in Term parsing, so append a dummy vaue for filling in as we parse
 func (vs *ValueStack) SetNegation(neg bool) {
-  log.Fatalf("[DEBUG] vs.SetNegation(%t)", neg) // TODO: DEBUG, REMOVE!
+  log.Printf("[DEBUG] vs.SetNegation(%t)", neg) // TODO: DEBUG, REMOVE!
 
   vs.Push(&Value{nil, NoField, NoOp, neg, false})
 }
@@ -112,7 +112,7 @@ func (vs *ValueStack) SetField(field string) {
 func (vs *ValueStack) SetRangeOp(rop string) {
   v := vs.Pop()
   if v.Field == NoField {
-    log.Fatalf("failed to register range operator %q, no field present to apply it to, aborting", rop)
+    log.Fatalf("[ERROR] failed to register range operator %q, no field present to apply it to, aborting", rop)
   }
 
   switch rop {
@@ -125,7 +125,7 @@ func (vs *ValueStack) SetRangeOp(rop string) {
   case "<":
     v.RangeOp = LessThan
   default:
-    log.Fatalf("invalid range operator %q found, aborting", rop)
+    log.Fatalf("[ERROR] invalid range operator %q found, aborting", rop)
   }
 
   vs.Push(v)
@@ -136,7 +136,7 @@ func (vs *ValueStack) Boolean(value string) {
 
   b, err := strconv.ParseBool(value)
   if err != nil {
-    log.Fatalf("failed to parse boolean from term %q for field %q, err=%s", value, tmp.Field, err)
+    log.Fatalf("[ERROR] failed to parse boolean from term %q for field %q, err=%s", value, tmp.Field, err)
   }
 
   tmp.Q = elastic.NewTermQuery(tmp.Field, b)
@@ -154,7 +154,7 @@ func (vs *ValueStack) Number(value string) {
 
   i, err := strconv.Atoi(value)
   if err != nil {
-    log.Fatalf("failed to parse invalid integer from term %q for field %q, err=%s", value, tmp.Field, err)
+    log.Fatalf("[ERROR] failed to parse invalid integer from term %q for field %q, err=%s", value, tmp.Field, err)
   }
 
   tmp.Q = elastic.NewTermQuery(tmp.Field, i)
@@ -186,7 +186,7 @@ func (vs *ValueStack) Range(value string) {
   tmp := vs.Pop()
 
   if vs.Peek() != nil && vs.Peek().RangeOp == NoOp {
-    log.Fatal("range op expected at top of values stack, can't register value %q for field %q, aborting", value, tmp.Field)
+    log.Fatalf("[ERROR] range op expected at top of values stack, can't register value %q for field %q, aborting", value, tmp.Field)
   }
   rq := elastic.NewRangeQuery(tmp.Field)
 
@@ -195,7 +195,7 @@ func (vs *ValueStack) Range(value string) {
   if SimpleDate.MatchString(value) {
     v = value
   } else if v, err = strconv.Atoi(value); err != nil {
-    log.Fatalf("couldn't parse valid integer for range value %q for field %q, err=%s", value, tmp.Field, err)
+    log.Fatalf("[ERROR] couldn't parse valid integer for range value %q for field %q, err=%s", value, tmp.Field, err)
   }
 
   switch tmp.RangeOp {
@@ -208,7 +208,7 @@ func (vs *ValueStack) Range(value string) {
   case GreaterThanEqual:
     rq.Gte(v)
   default:
-    log.Fatalf("invalid range operation (code %d) parsing range value %q for field %q", tmp.RangeOp, value, tmp.Field)
+    log.Fatalf("[ERROR] invalid range operation (code %d) parsing range value %q for field %q", tmp.RangeOp, value, tmp.Field)
   }
   tmp.Q = rq
 
