@@ -48,20 +48,16 @@ func NewLevel(negate bool) *Query {
   return &Query{elastic.NewBoolQuery(), None, negate}
 }
 
+func (qs *QueryStack) Init() {
+  qs.stack = []*Query{NewLevel(false)}
+}
+
 func (qs *QueryStack) Current() *Query {
-  if qs.stack == nil {
-    qs.stack = []*Query{NewLevel(false)}
-  }
   return qs.stack[len(qs.stack) - 1]
 }
 
 func (qs *QueryStack) Push(negate bool) {
-  if qs.stack == nil {
-    qs.stack = []*Query{NewLevel(false)}
-  }
   qs.stack = append(qs.stack, NewLevel(negate))
-
-  log.Fatalf("[DEBUG] qs.Push(stack_size:%d)", len(qs.stack)) // TODO: DEBUG, REMOVE!
 }
 
 func (qs *QueryStack) Finalize(values []*Value) {

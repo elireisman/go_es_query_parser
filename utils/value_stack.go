@@ -36,6 +36,57 @@ type ValueStack struct {
   stack []*Value
 }
 
+func (vs *ValueStack) Init() {
+  vs.stack = []*Value{}
+}
+
+func (vs *ValueStack) Push(v *Value) {
+  vs.stack = append(vs.stack, v)
+}
+
+func (vs *ValueStack) Pop() *Value {
+  if vs.Empty() {
+    log.Fatal("invalid attempt to pop value from empty stack!")
+  }
+
+  last := len(vs.stack) - 1
+  out := vs.stack[last]
+  vs.stack = vs.stack[:last]
+
+  return out
+}
+
+func (vs *ValueStack) Empty() bool {
+  return len(vs.stack) == 0
+}
+
+// start sentinel for parens-nested groupings of AND/OR separated query elements
+func (vs *ValueStack) StartGroup() {
+  log.Fatal("[DEBUG] vs.StartGroup()") // TODO: DEBUG, REMOVE!
+
+  vs.Push(&Value{nil, NoField, NoOp, false, true})
+}
+
+// returns the group of values for this nested AND/OR block, and whether it was prefixed by NOT
+func (vs *ValueStack) PopGroup() []*Value {
+  log.Fatal("[DEBUG] vs.PopGroup()") // TODO: DEBUG, REMOVE!
+
+  out := []*Value{}
+
+  // capture GroupStart too, strip it and return the negation value
+  next := vs.Pop();
+  for !next.GroupStart && !vs.Empty() {
+    out = append(out, next)
+    next = vs.Pop()
+  }
+
+  if len(out) > 0 && out[0].GroupStart {
+    out = out[1:]
+  }
+  return out
+}
+
+
 func (vs *ValueStack) Peek() *Value {
   if vs.Empty() {
     return nil
@@ -45,6 +96,8 @@ func (vs *ValueStack) Peek() *Value {
 
 // first thing that happens in Term parsing, so append a dummy vaue for filling in as we parse
 func (vs *ValueStack) SetNegation(neg bool) {
+  log.Fatalf("[DEBUG] vs.SetNegation(%t)", neg) // TODO: DEBUG, REMOVE!
+
   vs.Push(&Value{nil, NoField, NoOp, neg, false})
 }
 
@@ -76,51 +129,6 @@ func (vs *ValueStack) SetRangeOp(rop string) {
   }
 
   vs.Push(v)
-}
-
-func (vs *ValueStack) Push(v *Value) {
-  if vs.stack == nil {
-    vs.stack = []*Value{}
-  }
-  vs.stack = append(vs.stack, v)
-}
-
-func (vs *ValueStack) Pop() *Value {
-  if vs.Empty() {
-    log.Fatal("invalid attempt to pop value from empty stack!")
-  }
-
-  last := len(vs.stack) - 1
-  out := vs.stack[last]
-  vs.stack = vs.stack[:last]
-
-  return out
-}
-
-func (vs *ValueStack) Empty() bool {
-  return len(vs.stack) == 0
-}
-
-// start sentinel for parens-nested groupings of AND/OR separated query elements
-func (vs *ValueStack) StartGroup() {
-  vs.Push(&Value{nil, NoField, NoOp, false, true})
-}
-
-// returns the group of values for this nested AND/OR block, and whether it was prefixed by NOT
-func (vs *ValueStack) PopGroup() []*Value {
-  out := []*Value{}
-
-  // capture GroupStart too, strip it and return the negation value
-  next := vs.Pop();
-  for !next.GroupStart && !vs.Empty() {
-    out = append(out, next)
-    next = vs.Pop()
-  }
-
-  if len(out) > 0 && out[0].GroupStart {
-    out = out[1:]
-  }
-  return out
 }
 
 func (vs *ValueStack) Boolean(value string) {
@@ -160,20 +168,14 @@ func (vs *ValueStack) Term(term string) {
 }
 
 // only used in single-value context (i.e. a not a KV)
-func (vs *ValueStack) Match(text string, isFilterCtx bool) {
-  if isFilterCtx {
-    log.Fatal("no match query clauses allowed in filter context (try removing --filter CLI arg)")
-  }
+func (vs *ValueStack) Match(text string) {
   tmp := vs.Pop()
   tmp.Q = elastic.NewMatchQuery(tmp.Field, text)
   vs.Push(tmp)
 }
 
 // only used in single-value (quoted phrase) context (i.e. not a KV)
-func (vs *ValueStack) Phrase(phrase string, isFilterCtx bool) {
-  if isFilterCtx {
-    log.Fatal("no match_phrase query clauses allowed in filter context (try removing --filter CLI arg)")
-  }
+func (vs *ValueStack) Phrase(phrase string) {
   tmp := vs.Pop()
   tmp.Q = elastic.NewMatchPhraseQuery(tmp.Field, phrase)
   vs.Push(tmp)

@@ -24,16 +24,17 @@ Example DSL queries:
 * Simple token or double-quoted phrase treated as match or match-phrase subquery
 `foo AND bar`
 `"lorem ipsum goo goo gajoob" OR (bar AND baz)`
+`NOT a OR (b AND (c OR d OR (e AND NOT f))) OR (NOT (x AND y) OR z)`
 
-* Colon-separated key value pairs map to term, range, or exists queries on a particular field
-`foo:bar AND baz:123`
+* Colon-separated key value pairs map to term, match\_phrase, range, or exists query on a particular document field and value
+`foo:bar AND baz:123 AND x:>=50 AND msg:"some phrase blah blah" AND some_field:?`
 `(x AND y) OR z:>=55 OR post_fools_day:>2017/04/01`
 `abc AND "one two three" AND g:"gee whiz" AND ((baz:<2017/01/01 AND bar:>=2017/10/31) OR foo:<=7)`
 
 
 ### Learnings So Far
 * `pointlander/peg` generator produces clean, readable code you can investigate directly to debug errors in your grammar or a particular parse run
-* `pointlander/peg`'s error messages are ambiguous; sometimes errors are not localized to the site problem in the grammar (project has open issues for this)
+* `pointlander/peg`'s error messages are ambiguous; warnings are often not localized to the site of the error in the grammar (project has open issues for this)
 * There is a bug when importing `gopkg.in` based stable releases of vendored dependencies directly into a `*.peg` grammar file that required workarounds
 * Mixing `olivere/elastic` releases for multi-version support will require a script to manually vendor and shade (I used `sed -i ...`) various lib versions internally
 

@@ -41,7 +41,10 @@ func main() {
     IsFilter:   *isFilter,
     Buffer:     *query,
   }
+
   dsl.Init()
+  dsl.Queries.Init()
+  dsl.Values.Init()
   if err := dsl.Parse(); err != nil {
     log.Fatalf("Parse Error: %s", err)
   }
@@ -78,6 +81,6 @@ func main() {
 }
 
 func usage() string {
-  return fmt.Sprintf("Usage: %s -query \"query string\" [-filter] [-verbose] [-help]", os.Args[0])
+  return fmt.Sprintf("Usage: %s --query 'QUERY_STRING' [--filter] [--verbose] [--help]", os.Args[0])
   // TODO: detail the DSL grammar etc. here also, or with verbose + help opts together only?
 }
