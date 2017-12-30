@@ -77,7 +77,7 @@ func main() {
   if err != nil {
     log.Fatalf("failed to marshal rendered query as JSON, err=%s", err)
   }
-  log.Println(string(j))
+  fmt.Println(string(j))
 }
 
 func usage() string {

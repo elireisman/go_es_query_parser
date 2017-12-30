@@ -8,8 +8,7 @@ import (
 
 type Oper uint8
 const (
-  None          Oper = iota
-  And
+  And   Oper = iota
   Or
 )
 
@@ -32,9 +31,6 @@ func (q *Query) Should(eq elastic.Query) {
 }
 
 func (q *Query) SetOper(op Oper) {
-  if q.Oper != None && q.Oper != op {
-    log.Fatal("[ERROR] a single query clause cannot mix AND & OR operators")
-  }
   q.Oper = op
 }
 
@@ -45,7 +41,7 @@ type QueryStack struct {
 }
 
 func NewLevel(negate bool) *Query {
-  return &Query{elastic.NewBoolQuery(), None, negate}
+  return &Query{elastic.NewBoolQuery(), And, negate}
 }
 
 func (qs *QueryStack) Init() {
@@ -92,16 +88,7 @@ func (qs *QueryStack) Finalize(values []*Value) {
 func (qs *QueryStack) Compose(values []*Value) *Query {
   log.Printf("[DEBUG] qs.Compose(values_len:%d)", len(values)) // TODO: DEBUG, REMOVE!
 
-  if len(values) == 0 {
-    log.Fatal("[ERROR] every AND/OR clause must contain at least one valid value argument, aborting")
-  } else if len(values) == 1 {
-    // AND is the default for unspecified groups
-    if qs.Current().Oper != And {
-        qs.Current().Oper = And
-    }
-  }
-
-  for ndx, v := range values {
+  for _, v := range values {
     switch qs.Current().Oper {
     // AND clause maps to Must, NOT AND to MustNot in parent query
     case And:
@@ -118,9 +105,6 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
       } else {
         qs.Current().Should(v.Q)
       }
-
-    default: // None
-      log.Fatalf("[ERROR] unknown operator encountered in grouping clause at position %d, aborting", ndx)
     }
   }
 
@@ -130,10 +114,10 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
 func (qs *QueryStack) Pop() *Query {
   log.Printf("[DEBUG] qs.Pop(stack_size:%d)", len(qs.stack)) // TODO: DEBUG, REMOVE!
 
+  // pop current nested query level from stack
   if qs.Empty() {
     log.Fatal("[ERROR] can't pop subquery from empty stack, aborting")
   }
-
   last := len(qs.stack) - 1
   out := qs.stack[last]
   qs.stack = qs.stack[:last]
@@ -158,9 +142,6 @@ func (qs *QueryStack) Pop() *Query {
         // OR: nest child query in parent's "should"
         qs.Current().Should(out.BoolQ)
       }
-
-    default:
-      log.Fatalf("unknown grouping operator type at parent level (code %d)", qs.Current().Oper)
     }
   }
 

@@ -12,54 +12,45 @@ type DSL2ES Peg {
 
 # Rules
 
-# TODO: does Finalize() run before or after the rule matching?
-Result <- SP? Query Complete !.
+Result     <- SP? Query SP? Completed
+Completed  <- !. { p.Queries.Finalize(p.Values.PopGroup()) }
 
-Complete <- SP? { p.Queries.Finalize(p.Values.PopGroup()) }
-Query    <- AndExprs / OrExprs / Expr
-AndExprs <- Expr (SP AND SP Expr)+
-OrExprs  <- Expr (SP OR SP Expr)+
+Query      <- OrExpr
+OrExpr     <- AndExpr (SP OR SP OrExpr)?
+AndExpr    <- Expr (SP AND SP AndExpr)?
+Expr       <- GroupOrNot / Term
 
-Expr     <- GroupOrNot / TermOrNot
-TermOrNot <- NotCheck Term
-Term     <- KeyValue / Single
-NotCheck <- (Not / Empty) SP?
-Not      <- NOT { p.Values.SetNegation(true) }
-Empty    <- !NOT { p.Values.SetNegation(false) }
+Term       <- NotCheck? (KeyValue / SingleValue)
+NotCheck   <- NOT SP { p.Values.SetNegation() }
 
-GroupOrNot      <- GroupPrefix GroupSuffix
-GroupPrefix     <- NotGroupStart / GroupStart
-GroupStart      <- NOT SP? OPENPAREN { p.Queries.Push(true) }
-NotGroupStart   <- !NOT OPENPAREN { p.Queries.Push(false) }
-GroupSuffix     <- SP? Query SP? CLOSEPAREN
+GroupOrNot    <- GroupPrefix GroupSuffix
+GroupPrefix   <- NotGroupStart / GroupStart
+GroupStart    <- !Not OPENPAREN  { p.Queries.Push(false) }
+NotGroupStart <- Not OPENPAREN   { p.Queries.Push(true) }
+GroupSuffix   <- SP? Query SP? CLOSEPAREN
+Not           <- NOT SP?
 
-KeyValue <- Key COLON Value
-Key      <- < [a-z]+ > { p.Values.SetField(buffer[begin:end]) }
-Value    <- EXISTS / Range / BOOL / Phrase / Date / Number / Word
+KeyValue      <- Key COLON Value
+SingleValue   <- Phrase / Number / Word
+Key           <- < [a-z]+ > { p.Values.SetField(buffer[begin:end]) }
+Value         <- EXISTS / Range / BOOL / Phrase / Date / Number / Word
 
-Single       <- DefaultField (Phrase / Number / Word)
-DefaultField <- { p.Values.SetField("_all") }
-
-Range  <- RANGEOP Number / RANGEOP Date
-Date   <- < Year SEP Month SEP Day > { if p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Term(buffer[begin:end]) } }
-Phrase <- DQ < [^"]+ > DQ { p.Values.Phrase(buffer[begin:end]) }
+Range  <- RANGEOP Date / RANGEOP Number
+Date   <- < DIGIT DIGIT DIGIT DIGIT SEP DIGIT DIGIT SEP DIGIT DIGIT > { p.Values.RangeOrDate(buffer[begin:end]) }
+Phrase <- DQ < [^"]+ > DQ            { p.Values.Phrase(buffer[begin:end]) }
 
 
 # Token Matchers
 
 Word   <- < [a-zA-Z_] [a-zA-Z0-9_]* > { p.Values.Term(buffer[begin:end]) }
-
-Number <- < [0-9]+ > { if p.Values.Peek().RangeOp != utils.NoOp { p.Values.Range(buffer[begin:end]) } else { p.Values.Number(buffer[begin:end]) } }
-
-Month  <- '0' [1-9] / '1' [0-2]
-Year   <- [12] [0-9] [0-9] [0-9]
-Day    <- '0' [1-9] / [12] [0-9] / '3' [01]
+Number <- < [0-9]+ > { p.Values.RangeOrNumber(buffer[begin:end]) }
 
 OPENPAREN  <- '(' { p.Values.StartGroup() }
 CLOSEPAREN <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
 
 EXISTS  <- '?' { p.Values.Exists() }
-SEP     <- '/'
+DIGIT   <- [0-9]
+SEP     <- '/' / '-' / '.'
 COLON   <- ':'
 DQ      <- '"'
 NOT     <- 'NOT' / '!'
