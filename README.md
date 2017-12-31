@@ -24,14 +24,21 @@ _TODO: add grammar breakdown to CLI --help usage dump, or detail it here_
 The DSL is very similar to a subset of Lucene Query Syntax. This is redundant for real-world purposes but nice for focusing on the parser generator, which is our goal here.
 
 Simple tokens (word, number, date) are treated as term queries on the `_all` field. A double-quoted phrase is treated as match-phrase query on `_all`.
+
 `AND` takes precedence over `OR` phrases, and nesting via parentheses is arbitrary:
+
 `foo AND bar`
+
 `"lorem ipsum goo goo gajoob" OR (bar AND baz)`
+
 `NOT a OR (b AND (c OR d OR (e AND NOT f))) OR (NOT (x AND y) OR z)`
 
 Colon-separated key value pairs map to term, match\_phrase, number/date range, or exists query on a particular document field and value:
+
 `foo:bar AND baz:123 AND x:>=50 AND msg:"some phrase blah blah" AND some_field:?`
+
 `(x AND y) OR z:>=55 OR post_fools_day:>2017/04/01`
+
 `abc AND "one two three" AND g:"gee whiz" AND ((baz:<2017/01/01 AND bar:>=2017/10/31) OR foo:<=7)`
 
 ### Tips & Gotchas
