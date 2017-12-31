@@ -61,14 +61,10 @@ func (qs *QueryStack) Current() *Query {
 }
 
 func (qs *QueryStack) Push(negate bool) {
-  log.Printf("[DEBUG] Push(%t)", negate) // TODO: DEBUG, REMOVE!
-
   qs.stack = append(qs.stack, NewLevel(negate))
 }
 
 func (qs *QueryStack) Finalize(values []*Value) {
-  log.Printf("[DEBUG] Finalize(value_count:%d)", len(values)) // TODO: DEBUG, REMOVE!
-
   result := qs.Compose(values)
 
   if len(qs.stack) > 0 {
@@ -86,8 +82,6 @@ func (qs *QueryStack) Finalize(values []*Value) {
 // when ')' or end-of-input is encountered, we pop the whole group of individual queries from the stack
 // back to the last '(' or start-of-input, and we inject into the parent bool query at proper bucket/nesting
 func (qs *QueryStack) Compose(values []*Value) *Query {
-  log.Printf("[DEBUG] qs.Compose(values_len:%d)", len(values)) // TODO: DEBUG, REMOVE!
-
   for _, v := range values {
     switch qs.Current().Oper {
     // AND clause maps to Must, NOT AND to MustNot in parent query
@@ -112,8 +106,6 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
 }
 
 func (qs *QueryStack) Pop() *Query {
-  log.Printf("[DEBUG] qs.Pop(stack_size:%d)", len(qs.stack)) // TODO: DEBUG, REMOVE!
-
   // pop current nested query level from stack
   if qs.Empty() {
     log.Fatal("[ERROR] can't pop subquery from empty stack, aborting")

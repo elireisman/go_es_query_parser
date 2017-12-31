@@ -53,8 +53,6 @@ func (vs *ValueStack) Init() {
 }
 
 func (vs *ValueStack) Push(v *Value) {
-  log.Printf("[DEBUG] vs.Push(%#v)", *v) // TODO: DEBUG, REMOVE!
-
   vs.stack = append(vs.stack, v)
 }
 
@@ -66,8 +64,6 @@ func (vs *ValueStack) Pop() *Value {
   last := len(vs.stack) - 1
   out := vs.stack[last]
   vs.stack = vs.stack[:last]
-
-  log.Printf("[DEBUG] vs.Pop(%#v): %v", *out, out.Q) // TODO: DEBUG, REMOVE!
 
   return out
 }
@@ -91,15 +87,11 @@ func (vs *ValueStack) Empty() bool {
 
 // start sentinel for parens-nested groupings of AND/OR separated query elements
 func (vs *ValueStack) StartGroup() {
-  log.Printf("[DEBUG] vs.StartGroup()") // TODO: DEBUG, REMOVE!
-
   vs.Push(GroupInit)
 }
 
 // returns the group of values for this nested AND/OR block, and whether it was prefixed by NOT
 func (vs *ValueStack) PopGroup() []*Value {
-  log.Printf("[DEBUG] vs.PopGroup()") // TODO: DEBUG, REMOVE!
-
   out := []*Value{}
   next := vs.Pop()
   for next != nil && next.Field != GroupInitField {
@@ -115,8 +107,6 @@ func (vs *ValueStack) PopGroup() []*Value {
 
 // first thing that happens in Term parsing (if present), so append a dummy vaue for filling in as we parse
 func (vs *ValueStack) SetNegation() {
-  log.Printf("[DEBUG] vs.SetNegation(true)") // TODO: DEBUG, REMOVE!
-
   vs.Push(NewValue(true))
 }
 
@@ -124,9 +114,6 @@ func (vs *ValueStack) SetNegation() {
 // new one if not - then fill in Field, replace on stack
 func (vs *ValueStack) SetField(field string) {
   v := vs.current()
-
-  log.Printf("[DEBUG] vs.SetField(%s)", field) // TODO: DEBUG, REMOVE!
-
   v.Field = field
   vs.Push(v)
 }
@@ -249,8 +236,6 @@ func (vs *ValueStack) Range(value string) {
   // if this is an in-progress range parse, the value could be a date or a number - check both
   var v interface{}
   var err error
-
-  log.Printf("[DEBUG] Attempting MatchString on %q, result: %t", value, SimpleDate.MatchString(value)) // TODO: DEBUG, REMOVE!
 
   if SimpleDate.MatchString(value) {
     v = value
