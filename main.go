@@ -21,6 +21,7 @@ func main() {
   query := flag.String("query", NoInput, "the query (written in the DSL) you wish to submit")
   isFilter := flag.Bool("filter", false, "structure the output as a filtered match_all instead of standard query")
   verbose := flag.Bool("verbose", false, "log/explain verbosely during parsing")
+  defField := flag.String("default", "_all", "select a default field for non-KV values to applied against in the final query")
   halp := flag.Bool("help", false, "print DSL and usage details and exit")
   flag.Parse()
 
@@ -44,9 +45,9 @@ func main() {
 
   dsl.Init()
   dsl.Queries.Init()
-  dsl.Values.Init()
+  dsl.Values.Init(*defField)
   if err := dsl.Parse(); err != nil {
-    log.Fatalf("Parse Error: %s", err)
+    log.Fatalf("[ERROR] Parsing input, err=%s", err)
   }
 
   // if --verbose flag, let's see the AST before proceeding to translation step

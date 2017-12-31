@@ -45,11 +45,13 @@ func NewValue(negate bool) *Value {
 }
 
 type ValueStack struct {
-  stack []*Value
+  stack         []*Value
+  Default       string
 }
 
-func (vs *ValueStack) Init() {
+func (vs *ValueStack) Init(defField string) {
   vs.stack = []*Value{}
+  vs.Default = defField
 }
 
 func (vs *ValueStack) Push(v *Value) {
@@ -179,7 +181,7 @@ func (vs *ValueStack) Number(value string) {
 func (vs *ValueStack) Term(term string) {
   tmp := vs.current()
   if tmp.Field == NoField {
-    tmp.Field = "_all"
+    tmp.Field = vs.Default
   }
 
   tmp.Q = elastic.NewTermQuery(tmp.Field, term)

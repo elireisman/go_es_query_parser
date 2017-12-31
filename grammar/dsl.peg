@@ -50,7 +50,7 @@ CLOSEPAREN <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
 
 EXISTS  <- '?' { p.Values.Exists() }
 DIGIT   <- [0-9]
-SEP     <- '/' / '-' / '.'
+SEP     <- '-'
 COLON   <- ':'
 DQ      <- '"'
 NOT     <- 'NOT' / '!'
