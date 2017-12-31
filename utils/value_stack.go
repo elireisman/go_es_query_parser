@@ -4,6 +4,7 @@ import (
   "log"
   "regexp"
   "strconv"
+  "strings"
 
   "gopkg.in/olivere/elastic.v5"
 )
@@ -70,11 +71,10 @@ func (vs *ValueStack) Pop() *Value {
   return out
 }
 
-// internal method used to retrieve current tmp (stub value) on top of stack
-// that is being populated by successive parse steps, or a fresh value if
-// no such value exists. Wraps Pop() for general use in ES query setter methods.
-// each caller is expected to re-Push the value back to the stack after use/modification/
+// manages temp value population during multi-step value parses. returns new value if no temp found.
+// callers are expected to re-push values obtained here back onto the stack after use to continue process.
 func (vs *ValueStack) current() *Value {
+  // TODO: yuck! parse value elements in code not in grammar defs to simplify this crap & improve error msgs
   peek := len(vs.stack) - 1
   if vs.Empty() || vs.stack[peek] == GroupInit || vs.stack[peek].Q != NoQuery {
     return NewValue(false)
@@ -88,6 +88,7 @@ func (vs *ValueStack) Empty() bool {
 }
 
 // start sentinel for parens-nested groupings of AND/OR separated query elements
+// TODO: move ValueStack into parent QueryStack instances to disambiguate this
 func (vs *ValueStack) StartGroup() {
   vs.Push(GroupInit)
 }
@@ -121,22 +122,9 @@ func (vs *ValueStack) SetField(field string) {
 }
 
 // pop the tmp value stacked by SetNegation and SetField, fill in range op, replace on stack
-func (vs *ValueStack) SetRangeOp(rop string) {
+func (vs *ValueStack) SetRangeOp(rop RangeOp) {
   tmp := vs.current()
-
-  switch rop {
-  case ">=":
-    tmp.RangeOp = GreaterThanEqual
-  case "<=":
-    tmp.RangeOp = LessThanEqual
-  case ">":
-    tmp.RangeOp = GreaterThan
-  case "<":
-    tmp.RangeOp = LessThan
-  default:
-    log.Fatalf("[ERROR] invalid range operator %q found, aborting", rop)
-  }
-
+  tmp.RangeOp = rop
   vs.Push(tmp)
 }
 
@@ -207,6 +195,26 @@ func (vs *ValueStack) Phrase(phrase string) {
   }
 
   tmp.Q = elastic.NewMatchPhraseQuery(tmp.Field, phrase)
+  vs.Push(tmp)
+}
+
+func (vs *ValueStack) Window(toTildaFrom string) {
+  tmp := vs.current()
+
+  toFrom := strings.Split(toTildaFrom, "~")
+  iTo, err := strconv.Atoi(toFrom[0])
+  if err != nil {
+    log.Fatalf("[ERROR] failed to parse range window, to & from args must be valid integers, got %q, err=%s", toTildaFrom, err)
+  }
+  iFrom, err := strconv.Atoi(toFrom[1])
+  if err != nil {
+    log.Fatalf("[ERROR] failed to parse range window, to & from args must be valid integers, got %q, err=%s", toTildaFrom, err)
+  }
+  if iTo > iFrom {
+    log.Fatalf("[ERROR] range window to & from values are invalid - to is greater than from, got: %q", toTildaFrom)
+  }
+
+  tmp.Q = elastic.NewRangeQuery(tmp.Field).To(iTo).From(iFrom).IncludeLower(true).IncludeUpper(false)
   vs.Push(tmp)
 }
 

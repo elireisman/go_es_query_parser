@@ -33,38 +33,42 @@ Not           <- NOT SP?
 KeyValue      <- Key COLON Value
 SingleValue   <- Phrase / Number / Word
 Key           <- < [a-z]+ > { p.Values.SetField(buffer[begin:end]) }
-Value         <- EXISTS / Range / BOOL / Phrase / Date / Number / Word
+Value         <- EXISTS / Window / Range / BOOL / Phrase / Date / Number / Word
 
 Range  <- RANGEOP Date / RANGEOP Number
-Date   <- < DIGIT DIGIT DIGIT DIGIT SEP DIGIT DIGIT SEP DIGIT DIGIT > { p.Values.RangeOrDate(buffer[begin:end]) }
-Phrase <- DQ < [^"]+ > DQ            { p.Values.Phrase(buffer[begin:end]) }
+Date   <- < DIGIT DIGIT DIGIT DIGIT DASH DIGIT DIGIT DASH DIGIT DIGIT > { p.Values.RangeOrDate(buffer[begin:end]) }
+Phrase <- DQ < [^"]+ > DQ                                               { p.Values.Phrase(buffer[begin:end]) }
+Window <- OPENBRACKET SP? < DASH? [0-9]+ TILDA DASH? [0-9]+ > SP? CLOSEBRACKET      { p.Values.Window(buffer[begin:end]) }
 
 
 # Token Matchers
 
-Word   <- < [a-zA-Z_] [a-zA-Z0-9_]* > { p.Values.Term(buffer[begin:end]) }
-Number <- < [0-9]+ > { p.Values.RangeOrNumber(buffer[begin:end]) }
+Word    <- < [a-zA-Z_] [a-zA-Z0-9_]* > { p.Values.Term(buffer[begin:end]) }
+Number  <- < DASH? [0-9]+ >            { p.Values.RangeOrNumber(buffer[begin:end]) }
 
-OPENPAREN  <- '(' { p.Values.StartGroup() }
-CLOSEPAREN <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
+OPENPAREN    <- '(' { p.Values.StartGroup() }
+CLOSEPAREN   <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
+OPENBRACKET  <- '['
+CLOSEBRACKET <- ']'
 
 EXISTS  <- '?' { p.Values.Exists() }
 DIGIT   <- [0-9]
-SEP     <- '-'
+DASH    <- '-'
 COLON   <- ':'
+TILDA   <- '~'
 DQ      <- '"'
 NOT     <- 'NOT' / '!'
 
 BOOL    <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
 
 AND     <- 'AND' { p.Queries.Current().SetOper(utils.And) }
-OR      <- 'OR' { p.Queries.Current().SetOper(utils.Or) }
+OR      <- 'OR'  { p.Queries.Current().SetOper(utils.Or) }
 
 RANGEOP <- GTE / LTE / GT / LT
-GTE     <- < '>=' > { p.Values.SetRangeOp(buffer[begin:end]) }
-LTE     <- < '<=' > { p.Values.SetRangeOp(buffer[begin:end]) }
-GT      <- < '>' >  { p.Values.SetRangeOp(buffer[begin:end]) }
-LT      <- < '<' >  { p.Values.SetRangeOp(buffer[begin:end]) }
+GTE     <- < '>=' > { p.Values.SetRangeOp(utils.GreaterThanEqual) }
+LTE     <- < '<=' > { p.Values.SetRangeOp(utils.LessThanEqual) }
+GT      <- < '>' >  { p.Values.SetRangeOp(utils.GreaterThan) }
+LT      <- < '<' >  { p.Values.SetRangeOp(utils.LessThan) }
 
 SP      <- [ \t\r\n]+
 

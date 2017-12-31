@@ -6,6 +6,7 @@ pair, separated by a `:` (colon.) In the latter case, the keys are a single toke
 the indexed documents you wish to search. Values are comprised of one of a number of possible data types,
 corresponding to various query types.
 
+
 Some value element examples:
 
 `foo` ~ search the default field for term "foo"
@@ -24,6 +25,8 @@ Some value element examples:
 
 `created_at:<2017-10-31` ~ search the `created_at` field for dates before Halloween, 2017
 
+`cash:[50~200]` ~ returns all docs where `cash` field's value is within a range greater than or equal to 50, and less than 200
+
 
 Any field or parenthesized grouping can be negated with the `NOT` or `!` operator:
 
@@ -41,6 +44,7 @@ Parentheses are used for grouping of subqueries:
 `a OR (b:"some words" AND NOT c:20)` ~ return docs containing term "a" or where field `b` matches the phrase "some words", but field `c`'s value is not 20.
 
 `NOT foo:bar AND baz:99` ~ return docs where field `foo`'s value is not "bar" and where field `baz`'s value is 99.
+
 
 Nesting depth is arbitrary, limits are configured on the ES side:
 
