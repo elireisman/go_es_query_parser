@@ -7,7 +7,7 @@ that are not particularly performant or readable. Search results returned for a 
 #### TODOs
 Life is short and this tool has no practical use, but for fun it would be nice to also:
 * upgrade AST traversal business logic and grammar definitions to flatten/simplify generated queries
-* move more of the token-level value parsing from the grammar into the traversal logic to inject more actionable error messages
+* move value element parsing from the grammar into the traversal logic to provide more actionable error messages
 * support list-type values in queries, windowed queries, more query types etc.
 * add method for setting or defaulting various query params that have no clear place in such a DSL
 
@@ -20,7 +20,7 @@ Life is short and this tool has no practical use, but for fun it would be nice t
 
 
 ### DSL Grammar
-Instructions for using the DSL are [here](https://github.com/elireisman/go_es_query_parser/grammar/README.md)
+Instructions for using the DSL are [here](https://github.com/elireisman/go_es_query_parser/blob/master/grammar/README.md)
 
 
 ### Tips & Gotchas
