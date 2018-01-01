@@ -23,10 +23,11 @@ Some value element examples:
 
 `amount:>=40` ~ search the `amount` field using a range query for documents where the field's value is greater than or equal to 40
 
-`created_at:<2017-10-31T00:00:00Z` ~ search the `created_at` field for dates before Halloween of 2017 UTC
-^ _note: all dates are in RF3339 format_
+`created_at:<2017-10-31T00:00:00Z` ~ search the `created_at` field for dates before Halloween of 2017 UTC (_all dates are in RF3339 format_)
 
-`cash:[50~200]` ~ returns all docs where `cash` field's value is within a range greater than or equal to 50, and less than 200
+`cash:[50~200]` ~ returns all docs where `cash` field's value is within a range greater than or equal to 50, and less than 200.
+
+`updated_at:[2017-04-22T09:45:00Z~2017-05-03T10:20:00Z]` ~ window ranges can also include RFC3339 datetimes
 
 
 Any field or parenthesized grouping can be negated with the `NOT` or `!` operator:
