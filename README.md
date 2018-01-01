@@ -1,5 +1,5 @@
 ### Purpose
-To experiment with a Golang-based parser generator for translating string-based search queries into JSON suitable for use with Elasticsearch.
+To experiment with a Golang-based parser generator for translating string-based search queries of arbitrary complexity and nesting into JSON suitable for use with Elasticsearch.
 Currently using `github.com/pointlander/peg` for parsing and `gopkg.in/olivere/elastic.v5` for ES5-compatible query rendering.
 The goal here is to play with the parser generator, not generate optimally-structured ES queries. The DSL can generate valid ES queries
 that are not particularly performant or readable. Search results returned for a deeply nested query can be counterintuitive.
