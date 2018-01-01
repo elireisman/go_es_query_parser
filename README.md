@@ -28,4 +28,6 @@ Instructions for using the DSL are [here](https://github.com/elireisman/go_es_qu
 * `AND` operator binds tighter than `OR` in the absense of groupings (as expected)
 * A query (base or nested) defaults to `AND` behavior until the leftmost `OR` is encountered
 * Try piping the tool's output through `| tail -1 | jq .` for pretty-printed output
+* Single values like `a` or `foo:3` or `bar:baz` are placed in Match clauses in query context
+* Single values are placed in Term clauses in filter context (when `--filter` arg is supplied)
 
