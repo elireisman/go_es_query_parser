@@ -8,7 +8,7 @@ that are not particularly performant or readable. Search results returned for a 
 Life is short and this tool has no practical use, but for fun it would be nice to also:
 * upgrade AST traversal business logic and grammar definitions to flatten/simplify generated queries
 * move value element parsing from the grammar into the traversal logic to provide more actionable error messages
-* support list-type values in queries, windowed queries, more query types etc.
+* support list-type values in queries, more query types etc.
 * add method for setting or defaulting various query params that have no clear place in such a DSL
 
 
@@ -26,6 +26,6 @@ Instructions for using the DSL are [here](https://github.com/elireisman/go_es_qu
 ### Tips & Gotchas
 * The `--verbose` flag will display the full parse tree before rendering the final ES query JSON
 * `AND` operator binds tighter than `OR` in the absense of groupings (as expected)
-* A  query (base or nested) defaults to `AND` behavior until the leftmost `OR` is encountered
+* A query (base or nested) defaults to `AND` behavior until the leftmost `OR` is encountered
 * Try piping the tool's output through `| tail -1 | jq .` for pretty-printed output
 

@@ -23,7 +23,8 @@ Some value element examples:
 
 `amount:>=40` ~ search the `amount` field using a range query for documents where the field's value is greater than or equal to 40
 
-`created_at:<2017-10-31` ~ search the `created_at` field for dates before Halloween, 2017
+`created_at:<2017-10-31T00:00:00Z` ~ search the `created_at` field for dates before Halloween of 2017 UTC
+^ _note: all dates are in RF3339 format_
 
 `cash:[50~200]` ~ returns all docs where `cash` field's value is within a range greater than or equal to 50, and less than 200
 
@@ -48,5 +49,5 @@ Parentheses are used for grouping of subqueries:
 
 Nesting depth is arbitrary, limits are configured on the ES side:
 
-`(a OR b OR (c:5 AND d:10)) AND NOT ((x:foo OR x:bar) AND y:?) AND NOT z:?`
+`(a OR b OR (c:5 AND d:10)) AND NOT ((x:foo OR x:bar) AND y:? AND updated:<=2017-11-29T04:15:00Z) AND NOT z:[20~40]`
 

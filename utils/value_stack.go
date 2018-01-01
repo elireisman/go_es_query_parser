@@ -2,17 +2,13 @@ package utils
 
 import (
   "log"
-  "regexp"
   "strconv"
   "strings"
+  "time"
 
   "gopkg.in/olivere/elastic.v5"
 )
 
-var (
-  // TODO: real date parsing in real fmt!!!
-  SimpleDate = regexp.MustCompile(`\d{4}[/.-]\d{2}[/.-]\d{2}`)
-)
 
 const (
   NoField = "__ERR_NO_FIELD_SET__"
@@ -146,23 +142,29 @@ func (vs *ValueStack) Exists() {
   vs.Push(tmp)
 }
 
-
 func (vs *ValueStack) Date(value string) {
-  if !SimpleDate.MatchString(value) {
-    log.Fatalf("[ERROR] failed to parse date string term value: %q", value)
+  tmp := vs.current()
+  if tmp.Field == NoField {
+    tmp.Field = vs.Default
   }
-  vs.Term(value)
+  _, err := time.Parse(time.RFC3339, value)
+  if err != nil {
+    log.Fatalf("[ERROR] failed to parse RFC3339 date from %q for field %q, err=%s", value, tmp.Field, err)
+  }
+  tmp.Q = elastic.NewTermQuery(tmp.Field, value) // takes RFC3339 datetime as string
+  vs.Push(tmp)
 }
 
 func (vs *ValueStack) Number(value string) {
   tmp := vs.current()
-
-  i, err := strconv.Atoi(value)
-  if err != nil {
-    log.Fatalf("[ERROR] failed to parse invalid integer from term %q for field %q, err=%s", value, tmp.Field, err)
+  if tmp.Field == NoField {
+    tmp.Field = vs.Default
   }
-
-  tmp.Q = elastic.NewTermQuery(tmp.Field, i)
+  n, err := strconv.ParseFloat(value, 10)
+  if err != nil {
+    log.Fatalf("[ERROR] failed to parse number from %q for field %q, err=%s", value, tmp.Field, err)
+  }
+  tmp.Q = elastic.NewTermQuery(tmp.Field, n)
   vs.Push(tmp)
 }
 
@@ -171,7 +173,6 @@ func (vs *ValueStack) Term(term string) {
   if tmp.Field == NoField {
     tmp.Field = vs.Default
   }
-
   tmp.Q = elastic.NewTermQuery(tmp.Field, term)
   vs.Push(tmp)
 }
@@ -180,9 +181,8 @@ func (vs *ValueStack) Term(term string) {
 func (vs *ValueStack) Match(text string) {
   tmp := vs.current()
   if tmp.Field == NoField {
-    tmp.Field = "_all"
+    tmp.Field = vs.Default
   }
-
   tmp.Q = elastic.NewMatchQuery(tmp.Field, text)
   vs.Push(tmp)
 }
@@ -191,34 +191,37 @@ func (vs *ValueStack) Match(text string) {
 func (vs *ValueStack) Phrase(phrase string) {
   tmp := vs.current()
   if tmp.Field == NoField {
-    tmp.Field = "_all"
+    tmp.Field = vs.Default
   }
 
   tmp.Q = elastic.NewMatchPhraseQuery(tmp.Field, phrase)
   vs.Push(tmp)
 }
 
-func (vs *ValueStack) Window(toTildaFrom string) {
+func (vs *ValueStack) Window(fromTildaTo string) {
   tmp := vs.current()
 
-  toFrom := strings.Split(toTildaFrom, "~")
-  iTo, err := strconv.Atoi(toFrom[0])
-  if err != nil {
-    log.Fatalf("[ERROR] failed to parse range window, to & from args must be valid integers, got %q, err=%s", toTildaFrom, err)
-  }
-  iFrom, err := strconv.Atoi(toFrom[1])
-  if err != nil {
-    log.Fatalf("[ERROR] failed to parse range window, to & from args must be valid integers, got %q, err=%s", toTildaFrom, err)
-  }
-  if iTo > iFrom {
-    log.Fatalf("[ERROR] range window to & from values are invalid - to is greater than from, got: %q", toTildaFrom)
+  fromTo := strings.Split(fromTildaTo, "~")
+  var from interface{} = fromTo[0] // ES query accepts RFC3339 datetime as string
+  var to   interface{} = fromTo[1] // ditto
+  var err error
+  if _, err = time.Parse(time.RFC3339, fromTo[0]); err != nil {
+    if from, err = strconv.Atoi(fromTo[0]); err != nil {
+      log.Fatalf("[ERROR] failed to parse range window, from args must be valid RFC3339 datetime or number, got %q, err=%s", fromTildaTo, err)
+    }
   }
 
-  tmp.Q = elastic.NewRangeQuery(tmp.Field).To(iTo).From(iFrom).IncludeLower(true).IncludeUpper(false)
+  if _, err = time.Parse(time.RFC3339, fromTo[1]); err != nil {
+    if to, err = strconv.Atoi(fromTo[1]); err != nil {
+      log.Fatalf("[ERROR] failed to parse range window, to args must be valid RFC3339 datetime or number, got %q, err=%s", fromTildaTo, err)
+    }
+  }
+
+  tmp.Q = elastic.NewRangeQuery(tmp.Field).From(from).To(to).IncludeLower(true).IncludeUpper(false)
   vs.Push(tmp)
 }
 
-func (vs *ValueStack) RangeOrNumber(value string) {
+func (vs *ValueStack) NumberRangeOrTerm(value string) {
   // if this isn't an in-progress KV parse of a range, its a number, just pass the value along
   switch vs.Empty() || vs.stack[len(vs.stack) - 1].RangeOp == NoOp {
   case true:
@@ -228,7 +231,7 @@ func (vs *ValueStack) RangeOrNumber(value string) {
   }
 }
 
-func (vs *ValueStack) RangeOrDate(value string) {
+func (vs *ValueStack) DateRangeOrTerm(value string) {
   // if this isn't an in-progress KV parse of a range, its a number, just pass the value along
   switch vs.Empty() || vs.stack[len(vs.stack) - 1].RangeOp == NoOp {
   case true:
@@ -243,14 +246,15 @@ func (vs *ValueStack) Range(value string) {
   tmp := vs.current()
   rq := elastic.NewRangeQuery(tmp.Field)
 
-  // if this is an in-progress range parse, the value could be a date or a number - check both
+  // TODO: yuck! DRY the datetime vs number parsing up
   var v interface{}
   var err error
-
-  if SimpleDate.MatchString(value) {
-    v = value
-  } else if v, err = strconv.Atoi(value); err != nil {
-    log.Fatalf("[ERROR] couldn't parse valid integer for range value %q for field %q, err=%s", value, tmp.Field, err)
+  v = value // ES query accepts RFC3339 datetime as string
+  _, err = time.Parse(time.RFC3339, value)
+  if err != nil {
+    if v, err = strconv.ParseFloat(value, 10); err != nil {
+      log.Fatalf("[ERROR] couldn't parse valid RFC3339 date time or float64 for range value %q for field %q, err=%s", value, tmp.Field, err)
+    }
   }
 
   switch tmp.RangeOp {

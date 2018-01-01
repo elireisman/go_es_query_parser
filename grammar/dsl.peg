@@ -31,20 +31,28 @@ GroupSuffix   <- SP? Query SP? CLOSEPAREN
 Not           <- NOT SP?
 
 KeyValue      <- Key COLON Value
-SingleValue   <- Phrase / Number / Word
+SingleValue   <- Phrase / DateTime / Number / Word
 Key           <- < [a-z]+ > { p.Values.SetField(buffer[begin:end]) }
-Value         <- EXISTS / Window / Range / BOOL / Phrase / Date / Number / Word
+Value         <- EXISTS / Window / Range / BOOL / Phrase / DateTime / Number / Word
 
-Range  <- RANGEOP Date / RANGEOP Number
-Date   <- < DIGIT DIGIT DIGIT DIGIT DASH DIGIT DIGIT DASH DIGIT DIGIT > { p.Values.RangeOrDate(buffer[begin:end]) }
-Phrase <- DQ < [^"]+ > DQ                                               { p.Values.Phrase(buffer[begin:end]) }
-Window <- OPENBRACKET SP? < DASH? [0-9]+ TILDA DASH? [0-9]+ > SP? CLOSEBRACKET      { p.Values.Window(buffer[begin:end]) }
+Range        <- RANGEOP DateTime / RANGEOP Number
+DateTime     <- < Date (TEE Time)? >                             { p.Values.DateRangeOrTerm(buffer[begin:end]) }
+Phrase       <- DQ < [^"]+ > DQ                                  { p.Values.Phrase(buffer[begin:end]) }
+
+Window       <- OPENBRACKET SP? < WindowRange > SP? CLOSEBRACKET { p.Values.Window(buffer[begin:end]) }
+WindowRange  <- DateWindow / NumberWindow
+DateWindow   <- DateTime TILDA DateTime
+NumberWindow <- DASH? [0-9]+ TILDA DASH? [0-9]+
 
 
 # Token Matchers
 
-Word    <- < [a-zA-Z_] [a-zA-Z0-9_]* > { p.Values.Term(buffer[begin:end]) }
-Number  <- < DASH? [0-9]+ >            { p.Values.RangeOrNumber(buffer[begin:end]) }
+Date    <- Digits4 DASH Digits2 DASH Digits2
+Time    <- Digits2 COLON Digits2 COLON Digits2 ZEE (Digits2 COLON Digits2)?
+Word    <- < [a-zA-Z_] [a-zA-Z0-9_]* >                         { p.Values.Term(buffer[begin:end]) }
+Number  <- < (DIGIT / DOT/ DASH) (DIGIT / DASH / EEE / DOT)* > { p.Values.NumberRangeOrTerm(buffer[begin:end]) }
+Digits2 <- DIGIT DIGIT
+Digits4 <- Digits2 Digits2
 
 OPENPAREN    <- '(' { p.Values.StartGroup() }
 CLOSEPAREN   <- ')' { p.Queries.Compose(p.Values.PopGroup()) }
@@ -57,6 +65,11 @@ DASH    <- '-'
 COLON   <- ':'
 TILDA   <- '~'
 DQ      <- '"'
+TEE     <- 'T'
+ZEE     <- 'Z'
+EEE     <- [eE]
+DOT     <- '.'
+
 NOT     <- 'NOT' / '!'
 
 BOOL    <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
