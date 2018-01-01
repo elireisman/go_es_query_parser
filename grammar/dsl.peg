@@ -36,8 +36,8 @@ Key           <- < [A-Za-z_]+ > { p.Values.SetField(buffer[begin:end]) }
 Value         <- EXISTS / Window / Range / BOOL / Phrase / DateTime / Number / Word
 
 Range        <- RANGEOP DateTime / RANGEOP Number
-DateTime     <- < Date (TEE Time)? ZEE >                         { p.Values.DateRangeOrMatchTerm(p.IsFilter, buffer[begin:end]) }
-Phrase       <- DQ < [^"]+ > DQ                                  { p.Values.Phrase(buffer[begin:end]) }
+DateTime     <- < Date TEE Time ZEE > { p.Values.DateRangeOrMatchTerm(p.IsFilter, buffer[begin:end]) }
+Phrase       <- DQ < [^"]+ > DQ       { p.Values.Phrase(buffer[begin:end]) }
 
 Window       <- OPENBRACKET SP? < WindowRange > SP? CLOSEBRACKET { p.Values.Window(buffer[begin:end]) }
 WindowRange  <- DateWindow / NumberWindow
