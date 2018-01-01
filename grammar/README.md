@@ -23,20 +23,22 @@ Some value element examples:
 
 `amount:>=40` ~ search the `amount` field using a range query for documents where the field's value is greater than or equal to 40
 
-`created_at:<2017-10-31T00:00:00Z` ~ search the `created_at` field for dates before Halloween of 2017 UTC (_all dates are in RF3339 format_)
+`created_at:<2017-10-31T00:00:00Z` ~ search the `created_at` field for dates before Halloween of 2017 (_all datetimes are in RF3339 format, UTC timezone_)
 
 `cash:[50~200]` ~ returns all docs where `cash` field's value is within a range greater than or equal to 50, and less than 200.
 
-`updated_at:[2017-04-22T09:45:00Z~2017-05-03T10:20:00Z]` ~ window ranges can also include RFC3339 datetimes
+`updated_at:[2017-04-22T09:45:00Z~2017-05-03T10:20:00Z]` ~ window ranges can also include RFC3339 UTC datetimes
 
 
 Any field or parenthesized grouping can be negated with the `NOT` or `!` operator:
 
 `NOT foo` ~ search for documents where default field doesn't contain the token `foo`
 
+`!c:[2017-10-29T00:00:00Z~2017-10-30T00:00:00Z]` ~ returns docs where field `c`'s date value is _not_ within the range of October 29-31, 2017 (UTC)
+
 `NOT available:?` ~ search for documents where `available` field does not exist 
 
-`NOT count:>100` ~ search for documents where `count` field has a value that's _not_ greater than 100
+`!count:>100` ~ search for documents where `count` field has a value that's _not_ greater than 100
 
 `NOT (x OR y)` ~ search the default field for documents that don't contain terms "x" or "y"
 
@@ -46,6 +48,11 @@ Parentheses are used for grouping of subqueries:
 `a OR (b:"some words" AND NOT c:20)` ~ return docs containing term "a" or where field `b` matches the phrase "some words", but field `c`'s value is not 20.
 
 `NOT foo:bar AND baz:99` ~ return docs where field `foo`'s value is not "bar" and where field `baz`'s value is 99.
+
+
+Operators have aliases: `AND` -> `&&` and `OR` -> `||`:
+
+`!(b:? || c:?) && a:1` ~ returns docs where neither fields `b` or `c` exist, but field `a` exists and is equal to 1. 
 
 
 Nesting depth is arbitrary, limits are configured on the ES side:

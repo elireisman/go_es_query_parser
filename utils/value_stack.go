@@ -142,7 +142,7 @@ func (vs *ValueStack) Exists() {
   vs.Push(tmp)
 }
 
-func (vs *ValueStack) Date(value string) {
+func (vs *ValueStack) Date(filtered bool, value string) {
   tmp := vs.current()
   if tmp.Field == NoField {
     tmp.Field = vs.Default
@@ -151,11 +151,15 @@ func (vs *ValueStack) Date(value string) {
   if err != nil {
     log.Fatalf("[ERROR] failed to parse RFC3339 date from %q for field %q, err=%s", value, tmp.Field, err)
   }
-  tmp.Q = elastic.NewTermQuery(tmp.Field, value) // takes RFC3339 datetime as string
+  if filtered {
+    tmp.Q = elastic.NewTermQuery(tmp.Field, value) // takes RFC3339 datetime in UTC as string
+  } else {
+    tmp.Q = elastic.NewMatchQuery(tmp.Field, value) // takes RFC3339 datetime in UTC as string
+  }
   vs.Push(tmp)
 }
 
-func (vs *ValueStack) Number(value string) {
+func (vs *ValueStack) Number(filtered bool, value string) {
   tmp := vs.current()
   if tmp.Field == NoField {
     tmp.Field = vs.Default
@@ -164,7 +168,12 @@ func (vs *ValueStack) Number(value string) {
   if err != nil {
     log.Fatalf("[ERROR] failed to parse number from %q for field %q, err=%s", value, tmp.Field, err)
   }
-  tmp.Q = elastic.NewTermQuery(tmp.Field, n)
+  // drop value in "match" clause for queries, "term" clause in filter context
+  if filtered {
+    tmp.Q = elastic.NewTermQuery(tmp.Field, n)
+  } else {
+    tmp.Q = elastic.NewMatchQuery(tmp.Field, n)
+  }
   vs.Push(tmp)
 }
 
@@ -221,24 +230,32 @@ func (vs *ValueStack) Window(fromTildaTo string) {
   vs.Push(tmp)
 }
 
-func (vs *ValueStack) NumberRangeOrTerm(value string) {
+func (vs *ValueStack) NumberRangeOrMatchTerm(filtered bool, value string) {
   // if this isn't an in-progress KV parse of a range, its a number, just pass the value along
   switch vs.Empty() || vs.stack[len(vs.stack) - 1].RangeOp == NoOp {
   case true:
-    vs.Number(value)
+    vs.Number(filtered, value)
   case false:
     vs.Range(value)
   }
 }
 
-func (vs *ValueStack) DateRangeOrTerm(value string) {
+func (vs *ValueStack) DateRangeOrMatchTerm(filtered bool, value string) {
   // if this isn't an in-progress KV parse of a range, its a number, just pass the value along
   switch vs.Empty() || vs.stack[len(vs.stack) - 1].RangeOp == NoOp {
   case true:
-    vs.Date(value)
+    vs.Date(filtered, value)
   case false:
     vs.Range(value)
   }
+}
+
+// values should land in a "match" clause in query context, "term" clause in filter context
+func (vs *ValueStack) MatchTerm(filtered bool, value string) {
+  if filtered {
+    vs.Term(value)
+  }
+  vs.Match(value)
 }
 
 // value accepts dates "YYYY/MM/DD" or integers "-93"

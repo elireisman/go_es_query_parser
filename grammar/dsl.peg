@@ -21,7 +21,7 @@ AndExpr    <- Expr (SP AND SP AndExpr)?
 Expr       <- GroupOrNot / Term
 
 Term       <- NotCheck? (KeyValue / SingleValue)
-NotCheck   <- NOT SP { p.Values.SetNegation() }
+NotCheck   <- NOT SP? { p.Values.SetNegation() }
 
 GroupOrNot    <- GroupPrefix GroupSuffix
 GroupPrefix   <- NotGroupStart / GroupStart
@@ -32,11 +32,11 @@ Not           <- NOT SP?
 
 KeyValue      <- Key COLON Value
 SingleValue   <- Phrase / DateTime / Number / Word
-Key           <- < [a-z]+ > { p.Values.SetField(buffer[begin:end]) }
+Key           <- < [A-Za-z_]+ > { p.Values.SetField(buffer[begin:end]) }
 Value         <- EXISTS / Window / Range / BOOL / Phrase / DateTime / Number / Word
 
 Range        <- RANGEOP DateTime / RANGEOP Number
-DateTime     <- < Date (TEE Time)? >                             { p.Values.DateRangeOrTerm(buffer[begin:end]) }
+DateTime     <- < Date (TEE Time)? ZEE >                         { p.Values.DateRangeOrMatchTerm(p.IsFilter, buffer[begin:end]) }
 Phrase       <- DQ < [^"]+ > DQ                                  { p.Values.Phrase(buffer[begin:end]) }
 
 Window       <- OPENBRACKET SP? < WindowRange > SP? CLOSEBRACKET { p.Values.Window(buffer[begin:end]) }
@@ -48,9 +48,9 @@ NumberWindow <- DASH? [0-9]+ TILDA DASH? [0-9]+
 # Token Matchers
 
 Date    <- Digits4 DASH Digits2 DASH Digits2
-Time    <- Digits2 COLON Digits2 COLON Digits2 ZEE (Digits2 COLON Digits2)?
-Word    <- < [a-zA-Z_] [a-zA-Z0-9_]* >                         { p.Values.Term(buffer[begin:end]) }
-Number  <- < (DIGIT / DOT/ DASH) (DIGIT / DASH / EEE / DOT)* > { p.Values.NumberRangeOrTerm(buffer[begin:end]) }
+Time    <- Digits2 COLON Digits2 COLON Digits2
+Word    <- < [a-zA-Z_] [a-zA-Z0-9_]* >                         { p.Values.MatchTerm(p.IsFilter, buffer[begin:end]) }
+Number  <- < (DIGIT / DOT/ DASH) (DIGIT / DASH / EEE / DOT)* > { p.Values.NumberRangeOrMatchTerm(p.IsFilter, buffer[begin:end]) }
 Digits2 <- DIGIT DIGIT
 Digits4 <- Digits2 Digits2
 
@@ -74,8 +74,8 @@ NOT     <- 'NOT' / '!'
 
 BOOL    <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
 
-AND     <- 'AND' { p.Queries.Current().SetOper(utils.And) }
-OR      <- 'OR'  { p.Queries.Current().SetOper(utils.Or) }
+AND     <- 'AND' / '&&' { p.Queries.Current().SetOper(utils.And) }
+OR      <- 'OR' / '||'  { p.Queries.Current().SetOper(utils.Or) }
 
 RANGEOP <- GTE / LTE / GT / LT
 GTE     <- < '>=' > { p.Values.SetRangeOp(utils.GreaterThanEqual) }
