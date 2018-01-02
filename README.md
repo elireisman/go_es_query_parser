@@ -23,9 +23,6 @@ Life is short and this tool has no practical use, but for fun it would be nice t
 Instructions for using the DSL are [here](https://github.com/elireisman/go_es_query_parser/blob/master/grammar/README.md)
 
 
-### Tips & Gotchas
+### Tips
 * The `--verbose` flag will display the full parse tree before rendering the final ES query JSON
 * Try piping the tool's output through `| tail -1 | jq .` for pretty-printed output
-* Single values like `a` or `foo:3` or `bar:baz` are placed in Match clauses in query context
-* Single values are placed in Term clauses in filter context (when `--filter` arg is supplied)
-

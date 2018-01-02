@@ -90,7 +90,7 @@ func (vs *ValueStack) StartGroup() {
   vs.Push(GroupInit)
 }
 
-// returns the group of values for this nested AND/OR block, and whether it was prefixed by NOT
+// returns the group of values for this nested AND/OR block
 func (vs *ValueStack) PopGroup() []*Value {
   out := []*Value{}
   next := vs.Pop()
@@ -105,7 +105,7 @@ func (vs *ValueStack) PopGroup() []*Value {
   return out
 }
 
-// first thing that happens in Term parsing (if present), so append a dummy vaue for filling in as we parse
+// first thing that happens in Term parsing (if present), so append a dummy value for filling in as we parse
 func (vs *ValueStack) SetNegation() {
   vs.Push(NewValue(true))
 }
@@ -143,16 +143,18 @@ func (vs *ValueStack) Exists() {
   vs.Push(tmp)
 }
 
+// takes RFC3339 datetime in UTC as string
 func (vs *ValueStack) Date(filtered bool, value interface{}) {
   tmp := vs.current()
 
   if tmp.Field == NoField {
     tmp.Field = vs.Default
   }
+  // drop value into "match" clause for queries, "term" clause in filter context
   if filtered {
-    tmp.Q = elastic.NewTermQuery(tmp.Field, value) // takes RFC3339 datetime in UTC as string
+    tmp.Q = elastic.NewTermQuery(tmp.Field, value)
   } else {
-    tmp.Q = elastic.NewMatchQuery(tmp.Field, value) // takes RFC3339 datetime in UTC as string
+    tmp.Q = elastic.NewMatchQuery(tmp.Field, value)
   }
 
   vs.Push(tmp)
@@ -183,7 +185,6 @@ func (vs *ValueStack) Term(term interface{}) {
   vs.Push(tmp)
 }
 
-// only used in single-value context (i.e. a not a KV)
 func (vs *ValueStack) Match(text interface{}) {
   tmp := vs.current()
   if tmp.Field == NoField {
@@ -249,7 +250,7 @@ func (vs *ValueStack) DateRangeOrMatchTerm(filtered bool, value string) {
     log.Fatalf("[ERROR] failed to parse RFC3339 datetime in UTC from %q, err=%s", value, err)
   }
 
-  // if this isn't an in-progress KV parse of a range, its a number, just pass the value along
+  // if this isn't an in-progress KV parse of a range, its a plain value, just pass it along
   switch vs.Empty() || vs.stack[len(vs.stack) - 1].RangeOp == NoOp {
   case true:
     vs.Date(filtered, t)

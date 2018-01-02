@@ -8,9 +8,20 @@ import (
 
 type Oper uint8
 const (
-  And   Oper = iota
+  Unset      Oper = iota
+  DefaultAnd
+  And
   Or
 )
+
+func (o Oper) String() string {
+  switch o {
+  case DefaultAnd: return "DEFAULT_AND"
+  case And:        return "AND"
+  case Or:         return "OR"
+  default:         return "UNSET"
+  }
+}
 
 type Query struct {
   BoolQ         *elastic.BoolQuery
@@ -31,7 +42,11 @@ func (q *Query) Should(eq elastic.Query) {
 }
 
 func (q *Query) SetOper(op Oper) {
-  q.Oper = op
+  if q.Oper == Unset || q.Oper == DefaultAnd {
+    q.Oper = op
+  } else if q.Oper != op {
+    log.Fatalf("[ERROR] illegal attempt to change current query clause oper %s to %s", q.Oper, op)
+  }
 }
 
 
@@ -40,12 +55,12 @@ type QueryStack struct {
   stack         []*Query
 }
 
-func NewLevel(negate bool) *Query {
-  return &Query{elastic.NewBoolQuery(), And, negate}
+func NewLevel(op Oper, negate bool) *Query {
+  return &Query{elastic.NewBoolQuery(), op, negate}
 }
 
 func (qs *QueryStack) Init() {
-  qs.stack = []*Query{NewLevel(false)}
+  qs.stack = []*Query{NewLevel(DefaultAnd, false)}
 }
 
 func (qs *QueryStack) Empty() bool {
@@ -61,13 +76,13 @@ func (qs *QueryStack) Current() *Query {
 }
 
 func (qs *QueryStack) Push(negate bool) {
-  qs.stack = append(qs.stack, NewLevel(negate))
+  qs.stack = append(qs.stack, NewLevel(Unset, negate))
 }
 
 func (qs *QueryStack) Finalize(values []*Value) {
   result := qs.Compose(values)
 
-  if len(qs.stack) > 0 {
+  if len(qs.stack) > 1 {
     log.Println("[ERROR] input was not fully parsed, additional AST nodes remain on stack:")
     for ndx, frame := range qs.stack {
       log.Printf("[ERROR] [Stack Frame %d] %#v", len(qs.stack) - ndx, *frame)
@@ -85,7 +100,7 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
   for _, v := range values {
     switch qs.Current().Oper {
     // AND clause maps to Must, NOT AND to MustNot in parent query
-    case And:
+    case And, DefaultAnd:
       if v.Negate {
         qs.Current().MustNot(v.Q)
       } else {
@@ -99,6 +114,9 @@ func (qs *QueryStack) Compose(values []*Value) *Query {
       } else {
         qs.Current().Should(v.Q)
       }
+
+    default:
+      log.Fatal("[ERROR] invalid query clause operator in traversal results (code %d)", qs.Current().Oper)
     }
   }
 
@@ -117,7 +135,7 @@ func (qs *QueryStack) Pop() *Query {
   // if this is a child (nested) subquery, nest it properly in the parent level
   if len(qs.stack) > 0 {
     switch qs.Current().Oper {
-    case And:
+    case And, DefaultAnd:
       if out.Negate {
         // !AND: nest child query in parent's "must not"
         qs.Current().MustNot(out.BoolQ)
@@ -135,6 +153,10 @@ func (qs *QueryStack) Pop() *Query {
         qs.Current().Should(out.BoolQ)
       }
     }
+  } else {
+    // restack "out" if this is the base level query, as there could
+    // be multiple visits to that level before end-of-input
+    qs.stack = append(qs.stack, out)
   }
 
   return out

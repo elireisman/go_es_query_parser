@@ -1,21 +1,21 @@
 ### The Query DSL
 
 The DSL is comprised of operators (`AND`, `OR`, and `NOT`), grouping symbols (parentheses), and value elements.
-Values are comprised of either a single value (applied to the search query against a default field.) or a key-value
-pair, separated by a `:` (colon.) In the latter case, the keys are a single token representing a field in
-the indexed documents you wish to search. Values are comprised of one of a number of possible data types,
-corresponding to various query types.
+Values are comprised of either a single value, applied to the search query against a default field, or a key-value
+pair, separated by a `:`. In the latter case, the keys are a single token representing a field in the indexed documents
+you wish to search. Values are comprised of one of several possible data types, possibly including sub-operators corresponding
+to query type to be applied.
 
 
 Some value element examples:
 
-`foo` ~ search the default field for term "foo"
+`foo` ~ search the default field for value "foo" in a match or term query
 
-`35` ~ search the default field for the number 35, as an integer in a term query
+`35` ~ search the default field for the number 35, as an integer in a match or term query
 
-`name:Joe` ~ search the `name` field for the value "Joe" as a term query
+`name:Joe` ~ search the `name` field for the value "Joe" as a match or term query
 
-`count:2` ~ search the `count` field for the numerical value 2 as a term query
+`count:2` ~ search the `count` field for the numerical value 2 as a match or term query
 
 `graduated:?` ~ search for documents where the `graduated` field exists
 
@@ -58,4 +58,10 @@ Operators have aliases: `AND` -> `&&` and `OR` -> `||`:
 Nesting depth is arbitrary, limits are configured on the ES side:
 
 `(a OR b OR (c:5 AND d:10)) AND NOT ((x:foo OR x:bar) AND y:? AND updated:<=2017-11-29T04:15:00Z) AND NOT z:[20~40]`
+
+
+#### Gotchas/TODOs
+* `AND` is the default query operator in each query clause at each nesting depth
+* `AND`/`OR` opers override the default when encountered in the AST walk, so `(!x AND y) OR a` generates a different query than `a OR (!x AND y)`
+* right now, single values or KV pairs are rendered as Match queries by default, and Term queries in filter context
 
