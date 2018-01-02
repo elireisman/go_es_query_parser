@@ -61,7 +61,8 @@ Nesting depth is arbitrary, limits are configured on the ES side:
 
 
 #### Gotchas/TODOs
-* `AND` is the default query operator in each query clause at each nesting depth
-* `AND`/`OR` opers override the default when encountered in the AST walk, so `(!x AND y) OR a` generates a different query than `a OR (!x AND y)`
-* right now, single values or KV pairs are rendered as Match queries by default, and Term queries in filter context
+* `AND`/`OR` can't be mixed within a single query clause: `(x AND (!y OR a))` is valid, but `(x AND !y OR a)` is not
+* `AND` is the default query operator in each query clause at each nesting depth, to change this use `--default-or`
+* `AND`/`OR` opers override the default in the AST walk, so default-`AND` query `(!x AND y) OR a` generates a different output than `a OR (!x AND y)`
+* Single values or KV pairs are rendered as Match queries by default, and Term queries in filter context
 

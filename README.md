@@ -25,4 +25,5 @@ Instructions for using the DSL are [here](https://github.com/elireisman/go_es_qu
 
 ### Tips
 * The `--verbose` flag will display the full parse tree before rendering the final ES query JSON
+* The `--default-or` flag will change the default operator during AST traversal
 * Try piping the tool's output through `| tail -1 | jq .` for pretty-printed output
