@@ -15,13 +15,13 @@ type DSL2ES Peg {
 Result     <- SP? Query SP? Completed
 Completed  <- !. { p.Queries.Finalize(p.Values.PopGroup()) }
 
-Query      <- OrExpr
-OrExpr     <- AndExpr (SP OR SP OrExpr)?
-AndExpr    <- Expr (SP AND SP AndExpr)?
+Query      <- Exprs
+Exprs      <- Expr (SP Operator SP Expr)*
+Operator   <- OR  { p.Queries.Current().SetOper(utils.Or) } / AND { p.Queries.Current().SetOper(utils.And) }
 Expr       <- GroupOrNot / Term
 
 Term       <- NotCheck? (KeyValue / SingleValue)
-NotCheck   <- NOT SP? { p.Values.SetNegation() }
+NotCheck   <- NOT SP { p.Values.SetNegation() }
 
 GroupOrNot    <- GroupPrefix GroupSuffix
 GroupPrefix   <- NotGroupStart / GroupStart
@@ -76,8 +76,8 @@ NOT     <- 'NOT' / '!'
 
 BOOL    <- 'true' / 'false' { p.Values.Boolean(buffer[begin:end]) }
 
-AND     <- 'AND' / '&&' { p.Queries.Current().SetOper(utils.And) }
-OR      <- 'OR' / '||'  { p.Queries.Current().SetOper(utils.Or) }
+AND     <- 'AND' / '&&'
+OR      <- 'OR' / '||'
 
 RANGEOP <- GTE / LTE / GT / LT
 GTE     <- < '>=' > { p.Values.SetRangeOp(utils.GreaterThanEqual) }
