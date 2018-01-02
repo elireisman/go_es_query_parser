@@ -41,8 +41,10 @@ Phrase       <- DQ < [^"]+ > DQ       { p.Values.Phrase(buffer[begin:end]) }
 
 Window       <- OPENBRACKET SP? < WindowRange > SP? CLOSEBRACKET { p.Values.Window(buffer[begin:end]) }
 WindowRange  <- DateWindow / NumberWindow
-DateWindow   <- DateTime TILDA DateTime
-NumberWindow <- DASH? [0-9]+ TILDA DASH? [0-9]+
+DateWindow   <- WinDateTime TILDA WinDateTime
+WinDateTime  <- < Date TEE Time ZEE >
+NumberWindow <- WinNumber TILDA DASH? WinNumber
+WinNumber    <- < (DIGIT / DOT/ DASH) (DIGIT / DASH / EEE / DOT)* >
 
 
 # Token Matchers
