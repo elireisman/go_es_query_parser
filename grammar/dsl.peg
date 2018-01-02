@@ -21,7 +21,7 @@ Operator   <- OR  { p.Queries.Current().SetOper(utils.Or) } / AND { p.Queries.Cu
 Expr       <- GroupOrNot / Term
 
 Term       <- NotCheck? (KeyValue / SingleValue)
-NotCheck   <- NOT SP { p.Values.SetNegation() }
+NotCheck   <- NOT SP? { p.Values.SetNegation() }
 
 GroupOrNot    <- GroupPrefix GroupSuffix
 GroupPrefix   <- NotGroupStart / GroupStart
